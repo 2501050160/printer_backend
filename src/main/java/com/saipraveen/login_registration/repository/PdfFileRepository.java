@@ -65,16 +65,100 @@ List<PdfFile> findByUserId(
         Long userId
 );
 
-@Modifying
 @Query(
-    "UPDATE PdfFile p SET p.pdfData = null WHERE p.uploadTime < :cutoff AND p.pdfData IS NOT NULL"
+    "SELECT COUNT(p) FROM PdfFile p WHERE p.status='QUEUE'"
 )
-int clearPdfDataOlderThan(
-        @Param("cutoff")
-        LocalDateTime cutoff
+Long getQueuedOrders();
+
+@Query(
+    "SELECT p FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status='QUEUE' AND p.blockLocation=:block ORDER BY p.id ASC"
+)
+List<PdfFile> findQueueByBlock(
+        @Param("block") String blockLocation
 );
 
+@Query(
+    "SELECT p FROM PdfFile p WHERE p.status='CANCEL_WINDOW' AND p.cancelWindowEndsAt <= :now"
+)
+List<PdfFile> findExpiredCancelWindows(
+        @Param("now") LocalDateTime now
+);
 
+@Query(
+    "SELECT p FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status IN ('CANCEL_WINDOW','QUEUE','PRINTING') AND p.blockLocation=:block ORDER BY p.id ASC"
+)
+List<PdfFile> findActiveQueueByBlock(
+        @Param("block") String blockLocation
+);
 
+@Query(
+    "SELECT p FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status='QUEUE' ORDER BY p.id ASC"
+)
+List<PdfFile> findAllQueuedOrders();
 
-} 
+@Query(
+    "SELECT p FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status IN ('QUEUE','PRINTING') AND p.queuedAt IS NOT NULL AND p.queuedAt <= :cutoff"
+)
+List<PdfFile> findTimedOutOrders(
+        @Param("cutoff") LocalDateTime cutoff
+);
+
+@Query(
+    "SELECT COALESCE(SUM(COALESCE(p.originalPrice, p.price)),0) FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status NOT IN ('CANCELLED') AND p.paidAt >= :start"
+)
+Double getGrossRevenueSince(
+        @Param("start") LocalDateTime start
+);
+
+@Query(
+    "SELECT COALESCE(SUM(COALESCE(p.originalPrice, p.price)),0) FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status NOT IN ('CANCELLED')"
+)
+Double getGrossRevenueAll();
+
+@Query(
+    "SELECT COALESCE(SUM(COALESCE(p.discountAmount, 0)),0) FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status NOT IN ('CANCELLED') AND p.paidAt >= :start"
+)
+Double getTotalDiscountsSince(
+        @Param("start") LocalDateTime start
+);
+
+@Query(
+    "SELECT COALESCE(SUM(COALESCE(p.discountAmount, 0)),0) FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status NOT IN ('CANCELLED')"
+)
+Double getTotalDiscountsAll();
+
+@Query(
+    "SELECT COALESCE(SUM(p.price),0) FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status NOT IN ('CANCELLED') AND p.paidAt >= :start"
+)
+Double getNetRevenueSince(
+        @Param("start") LocalDateTime start
+);
+
+@Query(
+    "SELECT COALESCE(SUM(p.price),0) FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status NOT IN ('CANCELLED')"
+)
+Double getNetRevenueAll();
+
+@Modifying
+@Query(
+    "UPDATE PdfFile p SET p.pdfData = null WHERE p.pdfData IS NOT NULL AND p.status IN ('COMPLETED','CANCELLED') AND p.finishedAt IS NOT NULL AND p.finishedAt <= :cutoff"
+)
+int clearPdfDataFinishedBefore(
+        @Param("cutoff") LocalDateTime cutoff
+);
+
+@Modifying
+@Query(
+    "UPDATE PdfFile p SET p.pdfData = null WHERE p.pdfData IS NOT NULL AND p.status IN ('COMPLETED','CANCELLED')"
+)
+int clearPdfDataForFinishedOrders();
+
+@Modifying
+@Query(
+    "UPDATE PdfFile p SET p.pdfData = null WHERE p.pdfData IS NOT NULL AND p.paymentStatus='UNPAID' AND p.uploadTime < :cutoff"
+)
+int clearPdfDataForUnpaidOlderThan(
+        @Param("cutoff") LocalDateTime cutoff
+);
+
+}

@@ -36,6 +36,20 @@ private String status;
 
 private LocalDateTime uploadTime;
 
+private LocalDateTime paidAt;
+
+private LocalDateTime cancelWindowEndsAt;
+
+private LocalDateTime printingStartedAt;
+
+private LocalDateTime finishedAt;
+
+private LocalDateTime queuedAt;
+
+private Double originalPrice;
+
+private Double discountAmount;
+
 private Double price;
 
 private String printType;
@@ -197,5 +211,61 @@ public void setTotalPages(Integer totalPages) {
 
     public void setRazorpayPaymentId(String razorpayPaymentId) {
         this.razorpayPaymentId = razorpayPaymentId;
+    }
+
+    public LocalDateTime getPaidAt() {
+        return paidAt;
+    }
+
+    public void setPaidAt(LocalDateTime paidAt) {
+        this.paidAt = paidAt;
+    }
+
+    public LocalDateTime getCancelWindowEndsAt() {
+        return cancelWindowEndsAt;
+    }
+
+    public void setCancelWindowEndsAt(LocalDateTime cancelWindowEndsAt) {
+        this.cancelWindowEndsAt = cancelWindowEndsAt;
+    }
+
+    public LocalDateTime getPrintingStartedAt() {
+        return printingStartedAt;
+    }
+
+    public void setPrintingStartedAt(LocalDateTime printingStartedAt) {
+        this.printingStartedAt = printingStartedAt;
+    }
+
+    public LocalDateTime getFinishedAt() {
+        return finishedAt;
+    }
+
+    public void setFinishedAt(LocalDateTime finishedAt) {
+        this.finishedAt = finishedAt;
+    }
+
+    public LocalDateTime getQueuedAt() {
+        return queuedAt;
+    }
+
+    public void setQueuedAt(LocalDateTime queuedAt) {
+        this.queuedAt = queuedAt;
+    }
+
+    public Double getOriginalPrice() {
+        return originalPrice;
+    }
+
+    public void setOriginalPrice(Double originalPrice) {
+        this.originalPrice = originalPrice;
+    }
+
+    public Double getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(Double discountAmount) {
+        this.discountAmount = discountAmount;
     }
 }

@@ -23,6 +23,8 @@ public class User {
 
     private String password;
 
+    private Double walletBalance = 0.0;
+
     public User() {
     }
 
@@ -56,5 +58,13 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Double getWalletBalance() {
+        return walletBalance == null ? 0.0 : walletBalance;
+    }
+
+    public void setWalletBalance(Double walletBalance) {
+        this.walletBalance = walletBalance;
     }
 }

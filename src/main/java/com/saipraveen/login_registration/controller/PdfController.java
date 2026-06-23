@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.saipraveen.login_registration.entity.PdfFile;
 import com.saipraveen.login_registration.service.PdfFileService;
+import com.saipraveen.login_registration.service.QueueService;
 
 @RestController
 @RequestMapping("/api/pdf")
@@ -26,6 +27,9 @@ public class PdfController {
 
 @Autowired
 private PdfFileService service;
+
+@Autowired
+private QueueService queueService;
 
 @PostMapping("/updateOrder")
 public ResponseEntity<?> updateOrder(
@@ -124,10 +128,12 @@ public ResponseEntity<?> getUserOrders(
 }
 
 @GetMapping("/stats")
-public ResponseEntity<?> getStats() {
+public ResponseEntity<?> getStats(
+        @RequestParam(defaultValue = "all") String period
+) {
 
     return ResponseEntity.ok(
-            service.getDashboardStats()
+            service.getDashboardStats(period)
     );
 }
 @PostMapping("/updateStatus")
@@ -193,6 +199,74 @@ public ResponseEntity<?> paymentSuccess(
                     orderId,
                     paymentId
             )
+    );
+}
+
+@PostMapping("/payWithWallet")
+public ResponseEntity<?> payWithWallet(
+
+        @RequestParam String orderId
+
+) {
+
+    return ResponseEntity.ok(
+
+            service.payWithWallet(orderId)
+    );
+}
+
+@PostMapping("/updatePrice")
+public ResponseEntity<?> updatePrice(
+
+        @RequestParam String orderId,
+
+        @RequestParam Double price,
+
+        @RequestParam(required = false) Double originalPrice,
+
+        @RequestParam(required = false) Double discountAmount
+
+) {
+
+    return ResponseEntity.ok(
+
+            service.updateFinalPrice(
+                    orderId,
+                    price,
+                    originalPrice,
+                    discountAmount
+            )
+    );
+}
+
+@PostMapping("/cancelOrder")
+public ResponseEntity<?> cancelOrder(
+
+        @RequestParam String orderId,
+
+        @RequestParam Long userId
+
+) {
+
+    return ResponseEntity.ok(
+
+            queueService.cancelOrder(
+                    orderId,
+                    userId
+            )
+    );
+}
+
+@GetMapping("/cancelWindow")
+public ResponseEntity<?> cancelWindow(
+
+        @RequestParam String orderId
+
+) {
+
+    return ResponseEntity.ok(
+
+            service.getCancelWindowInfo(orderId)
     );
 }
 

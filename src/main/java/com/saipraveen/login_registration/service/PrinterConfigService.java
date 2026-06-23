@@ -1,0 +1,44 @@
+package com.saipraveen.login_registration.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.saipraveen.login_registration.entity.PrinterConfig;
+import com.saipraveen.login_registration.repository.PrinterConfigRepository;
+
+@Service
+public class PrinterConfigService {
+
+    @Autowired
+    private PrinterConfigRepository repository;
+
+    public PrinterConfig savePrinter(
+            PrinterConfig printer
+    ) {
+
+        return repository.save(
+                printer
+        );
+    }
+
+    public List<PrinterConfig> getAllPrinters() {
+
+        return repository.findAll();
+    }
+
+    public PrinterConfig getPrinterByBlock(
+            String blockLocation
+    ) {
+
+        return repository.findByBlockLocation(
+                blockLocation
+        );
+    }
+
+    public void deletePrinter(Long id) {
+
+        repository.deleteById(id);
+    }
+}

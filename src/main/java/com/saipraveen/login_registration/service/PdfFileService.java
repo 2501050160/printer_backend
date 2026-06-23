@@ -12,7 +12,6 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.printing.PDFPageable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,7 +23,10 @@ import com.saipraveen.login_registration.repository.UserRepository;
 @Service
 public class PdfFileService {
 @Autowired
-private PrinterService printerService;
+private QueueService queueService;
+
+@Autowired
+private UserService userService;
 
 @Autowired
 private PdfFileRepository repository;
@@ -154,6 +156,8 @@ public PdfFile updateOrder(
             rate;
 
     pdf.setPrice(price);
+    pdf.setOriginalPrice(price);
+    pdf.setDiscountAmount(0.0);
 
     return repository.save(pdf);
 }
@@ -171,6 +175,14 @@ public PdfFile updateStatus(
                     );
 
     pdf.setStatus(status);
+
+    if ("COMPLETED".equals(status)) {
+        pdf.setFinishedAt(LocalDateTime.now());
+    }
+
+    if ("PRINTING".equals(status) && pdf.getPrintingStartedAt() == null) {
+        pdf.setPrintingStartedAt(LocalDateTime.now());
+    }
 
     return repository.save(pdf);
 }
@@ -203,37 +215,47 @@ public List<PdfFile> getAllOrders() {
     return repository.findAll();
 }
 
-public Map<String,Object> getDashboardStats() {
+public Map<String,Object> getDashboardStats(String period) {
 
     Map<String,Object> stats =
             new HashMap<>();
 
+    LocalDateTime start = resolvePeriodStart(period);
 
+    Double grossRevenue;
+    Double totalDiscounts;
+    Double netRevenue;
 
+    if (start == null) {
+        grossRevenue = repository.getGrossRevenueAll();
+        totalDiscounts = repository.getTotalDiscountsAll();
+        netRevenue = repository.getNetRevenueAll();
+    } else {
+        grossRevenue = repository.getGrossRevenueSince(start);
+        totalDiscounts = repository.getTotalDiscountsSince(start);
+        netRevenue = repository.getNetRevenueSince(start);
+    }
 
-        stats.put(
-    "todayRevenue",
-    repository.getTodayRevenue()
-);
-
-stats.put(
-    "completedOrders",
-    repository.getCompletedOrders()
-);
-
-stats.put(
-    "printingOrders",
-    repository.getPrintingOrders()
-);
-
+    stats.put("period", period);
+    stats.put("grossRevenue", grossRevenue == null ? 0.0 : grossRevenue);
+    stats.put("totalDiscounts", totalDiscounts == null ? 0.0 : totalDiscounts);
+    stats.put("netRevenue", netRevenue == null ? 0.0 : netRevenue);
+    stats.put("totalRevenue", netRevenue == null ? 0.0 : netRevenue);
 
     stats.put(
-            "totalRevenue",
-            repository.getTotalRevenue()
+            "todayRevenue",
+            repository.getTodayRevenue()
     );
 
+    stats.put(
+            "completedOrders",
+            repository.getCompletedOrders()
+    );
 
-
+    stats.put(
+            "printingOrders",
+            repository.getPrintingOrders()
+    );
 
     stats.put(
             "totalOrders",
@@ -251,6 +273,22 @@ stats.put(
     );
 
     return stats;
+}
+
+private LocalDateTime resolvePeriodStart(String period) {
+
+    if (period == null || period.isBlank() || "all".equalsIgnoreCase(period)) {
+        return null;
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+
+    return switch (period.toLowerCase()) {
+        case "today" -> now.toLocalDate().atStartOfDay();
+        case "week" -> now.minusDays(7);
+        case "month" -> now.minusDays(30);
+        default -> null;
+    };
 }
 
 
@@ -295,54 +333,101 @@ public PdfFile markAsPaid(
         );
     }
 
-    pdf.setPaymentStatus(
-            "PAID"
-    );
-
-    pdf.setStatus(
-            "PRINTING"
-    );
-
     pdf.setRazorpayPaymentId(
             paymentId
     );
 
-    PdfFile savedPdf =
-            repository.save(
-                    pdf
-            );
+    queueService.beginCancelWindow(pdf);
 
-    printerService.printPdf(
-            savedPdf
-    );
-
-    return savedPdf;
+    return repository.save(pdf);
 }
 
-@Scheduled(
-        fixedRate = 60 * 60 * 1000,
-        initialDelay = 60 * 1000
-)
-@Transactional
-public void removeExpiredPdfData() {
+public PdfFile payWithWallet(String orderId) {
 
-    LocalDateTime cutoff =
-            LocalDateTime.now()
-                    .minusHours(24);
+    PdfFile pdf =
+            repository.findByOrderId(orderId);
 
-    int cleanedCount =
-            repository.clearPdfDataOlderThan(
-                    cutoff
-            );
-
-    if (cleanedCount > 0) {
-
-        System.out.println(
-                "Removed PDF data from "
-                        + cleanedCount
-                        + " order(s) older than 24 hours"
-        );
+    if (pdf == null) {
+        throw new RuntimeException("Order Not Found");
     }
+
+    if (!"UNPAID".equals(pdf.getPaymentStatus())) {
+        throw new RuntimeException("Order already paid");
+    }
+
+    Double price =
+            pdf.getPrice() == null ? 0.0 : pdf.getPrice();
+
+    userService.debitWallet(pdf.getUserId(), price);
+
+    pdf.setRazorpayPaymentId("WALLET");
+
+    queueService.beginCancelWindow(pdf);
+
+    return repository.save(pdf);
+}
+
+public PdfFile updateFinalPrice(
+        String orderId,
+        Double price,
+        Double originalPrice,
+        Double discountAmount
+) {
+
+    PdfFile pdf = repository.findByOrderId(orderId);
+
+    if (pdf == null) {
+        throw new RuntimeException("Order Not Found");
+    }
+
+    if (!"UNPAID".equals(pdf.getPaymentStatus())) {
+        throw new RuntimeException("Order already paid");
+    }
+
+    pdf.setPrice(price);
+
+    if (originalPrice != null) {
+        pdf.setOriginalPrice(originalPrice);
+    } else if (pdf.getOriginalPrice() == null) {
+        pdf.setOriginalPrice(price);
+    }
+
+    pdf.setDiscountAmount(
+            discountAmount == null ? 0.0 : discountAmount
+    );
+
+    return repository.save(pdf);
+}
+
+public Map<String, Object> getCancelWindowInfo(String orderId) {
+
+    PdfFile pdf =
+            repository.findByOrderId(orderId);
+
+    Map<String, Object> info = new HashMap<>();
+
+    if (pdf == null) {
+        info.put("found", false);
+        return info;
+    }
+
+    info.put("found", true);
+    info.put("orderId", pdf.getOrderId());
+    info.put("status", pdf.getStatus());
+    info.put("cancelWindowEndsAt", pdf.getCancelWindowEndsAt());
+    info.put("cancelWindowSeconds", queueService.getCancelWindowSeconds());
+
+    if (pdf.getCancelWindowEndsAt() != null) {
+        long secondsLeft =
+                java.time.Duration.between(
+                        LocalDateTime.now(),
+                        pdf.getCancelWindowEndsAt()
+                ).getSeconds();
+
+        info.put("secondsLeft", Math.max(0, secondsLeft));
+    }
+
+    return info;
 }
 
 private String resolveCustomerName(
@@ -547,13 +632,5 @@ private void addPageRange(
         );
     }
 }
-
-    public PrinterService getPrinterService() {
-        return printerService;
-    }
-
-    public void setPrinterService(PrinterService printerService) {
-        this.printerService = printerService;
-    }
 
 }
