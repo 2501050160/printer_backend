@@ -17,8 +17,13 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
 
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:5173")
-                        .allowedMethods("*");
+                        .allowedOrigins(
+                                "http://localhost:5173",
+                                "https://printer-frontend-six.vercel.app"
+                        )
+                        .allowedMethods("*")
+                        .allowedHeaders("*")
+                        .allowCredentials(true);
             }
         };
     }
