@@ -1,0 +1,80 @@
+package com.saipraveen.login_registration.repository;
+
+import java.util.List;
+import java.time.LocalDateTime;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.saipraveen.login_registration.entity.PdfFile;
+
+public interface PdfFileRepository
+        extends JpaRepository<PdfFile, Long> {
+
+    PdfFile findByOrderId(String orderId);
+
+    @Query(
+        value = "SELECT COALESCE(MAX(id),0) FROM pdf_files",
+        nativeQuery = true
+    )
+    Long getLastId();
+
+
+@Query(
+ "SELECT SUM(price) FROM PdfFile"
+)
+Double getTotalRevenue();
+
+
+
+
+@Query(
+    "SELECT COUNT(p) FROM PdfFile p"
+)
+Long getTotalOrders();
+
+@Query(
+    "SELECT COALESCE(SUM(p.totalPages),0) FROM PdfFile p"
+)
+Long getTotalPagesPrinted();
+
+@Query(
+    "SELECT COUNT(p) FROM PdfFile p WHERE p.status='ORDER_CREATED'"
+)
+Long getPendingOrders();
+@Query(
+"SELECT COALESCE(SUM(p.price),0) FROM PdfFile p WHERE DATE(p.uploadTime)=CURRENT_DATE"
+)
+Double getTodayRevenue();
+
+
+@Query(
+"SELECT COUNT(p) FROM PdfFile p WHERE p.status='PRINTING'"
+)
+Long getPrintingOrders();
+
+@Query(
+"SELECT COUNT(p) FROM PdfFile p WHERE p.status='COMPLETED'"
+)
+Long getCompletedOrders();
+
+
+List<PdfFile> findByUserId(
+        Long userId
+);
+
+@Modifying
+@Query(
+    "UPDATE PdfFile p SET p.pdfData = null WHERE p.uploadTime < :cutoff AND p.pdfData IS NOT NULL"
+)
+int clearPdfDataOlderThan(
+        @Param("cutoff")
+        LocalDateTime cutoff
+);
+
+
+
+
+} 

@@ -1,0 +1,201 @@
+package com.saipraveen.login_registration.entity;
+
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "pdf_files")
+public class PdfFile {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+private String paymentStatus;
+    private String fileName;
+private Long userId;
+private String customerName;
+private String blockLocation;
+    private Integer copies;
+    private String selectedPages;
+    private String razorpayPaymentId;
+
+
+    
+    private String fileType;
+
+    private Long fileSize;
+private String status;
+    private String orderId;
+
+private LocalDateTime uploadTime;
+
+private Double price;
+
+private String printType;
+
+
+
+    private Integer totalPages;
+
+    @Lob
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] pdfData;
+
+    public PdfFile() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+   
+
+public void setPaymentStatus1(String paymentStatus) {
+    this.paymentStatus = paymentStatus;
+}
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getFileType() {
+        return fileType;
+    }
+
+    public void setFileType(String fileType) {
+        this.fileType = fileType;
+    }
+
+    public Long getFileSize() {
+        return fileSize;
+    }
+    public Integer getTotalPages() {
+    return totalPages;
+}
+
+public void setTotalPages(Integer totalPages) {
+    this.totalPages = totalPages;
+}
+
+    public void setFileSize(Long fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    public byte[] getPdfData() {
+        return pdfData;
+    }
+
+    public void setPdfData(byte[] pdfData) {
+        this.pdfData = pdfData;
+    }
+
+    public String getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(String orderId) {
+        this.orderId = orderId;
+    }
+
+    public LocalDateTime getUploadTime() {
+        return uploadTime;
+    }
+
+    public void setUploadTime(LocalDateTime uploadTime) {
+        this.uploadTime = uploadTime;
+    }
+
+    public String getSelectedPages() {
+        return selectedPages;
+    }
+
+    public void setSelectedPages(String selectedPages) {
+        this.selectedPages = selectedPages;
+    }
+
+    public Integer getCopies() {
+        return copies;
+    }
+
+    public void setCopies(Integer copies) {
+        this.copies = copies;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
+    }
+
+    public String getBlockLocation() {
+        return blockLocation;
+    }
+
+    public void setBlockLocation(String blockLocation) {
+        this.blockLocation = blockLocation;
+    }
+
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
+    }
+
+    public String getPrintType() {
+        return printType;
+    }
+
+    public void setPrintType(String printType) {
+        this.printType = printType;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public String getRazorpayPaymentId() {
+        return razorpayPaymentId;
+    }
+
+    public void setRazorpayPaymentId(String razorpayPaymentId) {
+        this.razorpayPaymentId = razorpayPaymentId;
+    }
+}
