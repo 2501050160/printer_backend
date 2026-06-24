@@ -111,6 +111,8 @@ public class AdminController {
         settings.put("popupMessage", systemSettingService.getSetting("referral_popup_message", ""));
         settings.put("adEnabled", systemSettingService.getSettingBool("ad_enabled", true));
         settings.put("adText", systemSettingService.getSetting("ad_text", ""));
+        settings.put("generalPopupEnabled", systemSettingService.getSettingBool("general_popup_enabled", false));
+        settings.put("generalPopupMessage", systemSettingService.getSetting("general_popup_message", ""));
         return ResponseEntity.ok(settings);
     }
 
@@ -136,6 +138,12 @@ public class AdminController {
         }
         if (request.containsKey("adText")) {
             systemSettingService.setSetting("ad_text", String.valueOf(request.get("adText")));
+        }
+        if (request.containsKey("generalPopupEnabled")) {
+            systemSettingService.setSetting("general_popup_enabled", String.valueOf(request.get("generalPopupEnabled")));
+        }
+        if (request.containsKey("generalPopupMessage")) {
+            systemSettingService.setSetting("general_popup_message", String.valueOf(request.get("generalPopupMessage")));
         }
         return ResponseEntity.ok("Settings updated successfully");
     }

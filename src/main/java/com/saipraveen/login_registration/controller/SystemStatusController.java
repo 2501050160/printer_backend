@@ -77,6 +77,8 @@ public class SystemStatusController {
         settings.put("popupMessage", systemSettingService.getSetting("referral_popup_message", ""));
         settings.put("adEnabled", systemSettingService.getSettingBool("ad_enabled", true));
         settings.put("adText", systemSettingService.getSetting("ad_text", ""));
+        settings.put("generalPopupEnabled", systemSettingService.getSettingBool("general_popup_enabled", false));
+        settings.put("generalPopupMessage", systemSettingService.getSetting("general_popup_message", ""));
         return ResponseEntity.ok(settings);
     }
 
