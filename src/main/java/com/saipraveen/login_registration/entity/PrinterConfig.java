@@ -23,6 +23,8 @@ public class PrinterConfig {
 
     private Boolean active;
 
+    private Integer paperCount = 500;
+
     public PrinterConfig() {
     }
 
@@ -64,5 +66,13 @@ public class PrinterConfig {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public Integer getPaperCount() {
+        return paperCount;
+    }
+
+    public void setPaperCount(Integer paperCount) {
+        this.paperCount = paperCount;
     }
 }

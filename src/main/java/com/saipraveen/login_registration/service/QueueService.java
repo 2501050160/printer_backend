@@ -23,6 +23,9 @@ public class QueueService {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private PrinterConfigService printerConfigService;
+
     @Value("${print.cancel-window-seconds:30}")
     private int cancelWindowSeconds;
 
@@ -160,6 +163,13 @@ public class QueueService {
         pdf.setStatus("COMPLETED");
         pdf.setFinishedAt(LocalDateTime.now());
         pdf.setPdfData(null); // Delete the PDF binary file data immediately after printing is completed
+
+        try {
+            int pages = (pdf.getTotalPages() != null ? pdf.getTotalPages() : 1) * (pdf.getCopies() != null ? pdf.getCopies() : 1);
+            printerConfigService.decrementPaper(pdf.getBlockLocation(), pages);
+        } catch (Exception e) {
+            System.err.println("Failed to decrement paper count for block: " + pdf.getBlockLocation() + " - " + e.getMessage());
+        }
 
         return repository.save(pdf);
     }

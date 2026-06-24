@@ -38,6 +38,26 @@ private PdfFileRepository repository;
     @Autowired
     private PricingService pricingService;
 
+    @Autowired
+    private SystemSettingService systemSettingService;
+
+    @jakarta.annotation.PostConstruct
+    public void initSystemSettings() {
+        initSetting("referral_enabled", "true");
+        initSetting("referral_referrer_amount", "10.0");
+        initSetting("referral_referee_amount", "5.0");
+        initSetting("referral_popup_enabled", "true");
+        initSetting("referral_popup_message", "Welcome! Share your referral code with friends. They get Rs. 5 and you get Rs. 10 on their first checkout!");
+        initSetting("ad_enabled", "true");
+        initSetting("ad_text", "📢 REFERRAL SPECIAL: Refer your friends using your unique Referral Code shown below and earn ₹10 instantly when they checkout! They get ₹5 off on their first order!");
+    }
+
+    private void initSetting(String key, String defaultValue) {
+        if (systemSettingService.getSetting(key, null) == null) {
+            systemSettingService.setSetting(key, defaultValue);
+        }
+    }
+
 public PdfFile savePdf(
         MultipartFile file,
         Long userId,
@@ -664,6 +684,13 @@ private void addPageRange(
     public Map<String, Object> applyReferral(String orderId, String referralCode, Long currentUserId) {
         Map<String, Object> response = new HashMap<>();
         
+        // 1. Verify Referral Program is enabled globally
+        if (!systemSettingService.getSettingBool("referral_enabled", true)) {
+            response.put("success", false);
+            response.put("message", "Referral program is currently deactivated");
+            return response;
+        }
+
         PdfFile pdf = repository.findByOrderId(orderId);
         if (pdf == null) {
             response.put("success", false);
@@ -690,6 +717,14 @@ private void addPageRange(
             return response;
         }
 
+        // 2. Verify user is on their first order
+        long paidOrders = repository.countByUserIdAndPaymentStatus(currentUserId, "PAID");
+        if (paidOrders > 0) {
+            response.put("success", false);
+            response.put("message", "Referral codes can only be applied to your first order.");
+            return response;
+        }
+
         pdf.setAppliedReferralCode(referralCode.trim());
         repository.save(pdf);
 
@@ -699,16 +734,22 @@ private void addPageRange(
     }
 
     private void processReferralRewards(PdfFile pdf) {
+        if (!systemSettingService.getSettingBool("referral_enabled", true)) {
+            return;
+        }
         String refCode = pdf.getAppliedReferralCode();
         if (refCode != null && !refCode.trim().isEmpty()) {
             try {
                 User referrer = userRepository.findByReferralCode(refCode.trim());
                 if (referrer != null && !referrer.getId().equals(pdf.getUserId())) {
-                    // Credit referrer ₹10
-                    userService.creditWallet(referrer.getId(), 10.0);
-                    // Credit referee (current order user) ₹5
-                    userService.creditWallet(pdf.getUserId(), 5.0);
-                    System.out.println("Applied referral code: " + refCode + ". Referrer " + referrer.getId() + " credited 10, referee " + pdf.getUserId() + " credited 5.");
+                    double referrerAmt = systemSettingService.getSettingDouble("referral_referrer_amount", 10.0);
+                    double refereeAmt = systemSettingService.getSettingDouble("referral_referee_amount", 5.0);
+
+                    // Credit referrer
+                    userService.creditWallet(referrer.getId(), referrerAmt);
+                    // Credit referee (current order user)
+                    userService.creditWallet(pdf.getUserId(), refereeAmt);
+                    System.out.println("Applied referral code: " + refCode + ". Referrer " + referrer.getId() + " credited " + referrerAmt + ", referee " + pdf.getUserId() + " credited " + refereeAmt + ".");
                 }
             } catch (Exception e) {
                 System.err.println("Failed to apply referral code rewards: " + e.getMessage());

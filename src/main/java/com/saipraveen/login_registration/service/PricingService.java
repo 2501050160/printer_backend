@@ -14,10 +14,16 @@ public class PricingService {
     @Autowired
     private PricingRepository pricingRepository;
 
+    @Autowired
+    private com.saipraveen.login_registration.repository.CampusBlockRepository campusBlockRepository;
+
     @PostConstruct
     public void initDefaultPrices() {
         String[] blocks = {"C Block", "R Block", "L Block"};
         for (String block : blocks) {
+            if (campusBlockRepository.findByName(block) == null) {
+                campusBlockRepository.save(new com.saipraveen.login_registration.entity.CampusBlock(block));
+            }
             initializeBlockPrice(block, "BW", 2.0);
             initializeBlockPrice(block, "COLOR", 5.0);
         }
