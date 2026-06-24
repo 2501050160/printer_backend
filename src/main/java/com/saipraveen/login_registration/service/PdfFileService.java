@@ -7,9 +7,20 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import javax.imageio.ImageIO;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.printing.PDFPageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -98,14 +109,35 @@ public PdfFile savePdf(
     pdf.setUploadTime(LocalDateTime.now());
 
     // File Details
-    pdf.setFileName(file.getOriginalFilename());
-    pdf.setFileType(file.getContentType());
-    pdf.setFileSize(file.getSize());
-    pdf.setPdfData(file.getBytes());
+    byte[] fileBytes = file.getBytes();
+    String contentType = file.getContentType();
+    String filename = file.getOriginalFilename();
+    boolean isImage = false;
+    if (filename != null) {
+        String lower = filename.toLowerCase();
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")) {
+            isImage = true;
+        }
+    }
+
+    if (isImage) {
+        fileBytes = convertImageToPdf(fileBytes, contentType);
+        pdf.setFileType("application/pdf");
+        if (filename != null && !filename.toLowerCase().endsWith(".pdf")) {
+            pdf.setFileName(filename + ".pdf");
+        } else {
+            pdf.setFileName(filename);
+        }
+    } else {
+        pdf.setFileType(contentType);
+        pdf.setFileName(filename);
+    }
+    pdf.setFileSize((long) fileBytes.length);
+    pdf.setPdfData(fileBytes);
 
     // Calculate PDF Page Count
     try (PDDocument document =
-                 Loader.loadPDF(file.getBytes())) {
+                 Loader.loadPDF(fileBytes)) {
 
         int pageCount =
                 document.getNumberOfPages();
@@ -125,6 +157,24 @@ pdf.setPaymentStatus("UNPAID");
     return repository.save(pdf);
 }
 
+private byte[] convertImageToPdf(byte[] imageBytes, String contentType) throws IOException {
+    try (PDDocument document = new PDDocument();
+         ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+        PDPage page = new PDPage(new PDRectangle(image.getWidth(), image.getHeight()));
+        document.addPage(page);
+
+        PDImageXObject pdImage = (contentType != null && contentType.contains("png"))
+                ? LosslessFactory.createFromImage(document, image)
+                : JPEGFactory.createFromImage(document, image);
+
+        try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+            contentStream.drawImage(pdImage, 0, 0);
+        }
+        document.save(baos);
+        return baos.toByteArray();
+    }
+}
 
 public PdfFile updateOrder(
         String orderId,
@@ -760,5 +810,90 @@ private void addPageRange(
     @Transactional
     public void resetAllStats() {
         repository.deleteAll();
+    }
+
+    public PdfFile saveMultiplePdfs(
+            MultipartFile[] files,
+            Long userId,
+            String customerName,
+            String blockLocation
+    ) throws IOException {
+        java.util.List<byte[]> pdfBytesList = new java.util.ArrayList<>();
+        String combinedName = "";
+        
+        for (int i = 0; i < files.length; i++) {
+            MultipartFile file = files[i];
+            byte[] fileBytes = file.getBytes();
+            String filename = file.getOriginalFilename();
+            String contentType = file.getContentType();
+            
+            boolean isImage = false;
+            if (filename != null) {
+                String lower = filename.toLowerCase();
+                if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")) {
+                    isImage = true;
+                }
+            }
+            
+            if (isImage) {
+                fileBytes = convertImageToPdf(fileBytes, contentType);
+            }
+            
+            pdfBytesList.add(fileBytes);
+            
+            String baseName = filename != null ? filename : "Document";
+            if (isImage && !baseName.toLowerCase().endsWith(".pdf")) {
+                baseName = baseName + ".pdf";
+            }
+            
+            if (i == 0) {
+                combinedName = baseName;
+            } else if (i == 1) {
+                combinedName = combinedName + " + " + baseName;
+            }
+        }
+        
+        if (files.length > 2) {
+            combinedName = combinedName + " (and " + (files.length - 2) + " more)";
+        }
+        
+        byte[] mergedPdfBytes = mergePdfs(pdfBytesList);
+        
+        PdfFile pdf = new PdfFile();
+        pdf.setUserId(userId);
+        pdf.setCustomerName(resolveCustomerName(userId, customerName));
+        pdf.setBlockLocation(normalizeBlockLocation(blockLocation));
+        pdf.setCopies(1);
+        pdf.setSelectedPages("ALL");
+        
+        Long lastId = repository.getLastId() + 1;
+        String orderId = "ORD2026" + String.format("%04d", lastId);
+        pdf.setOrderId(orderId);
+        pdf.setUploadTime(LocalDateTime.now());
+        pdf.setFileName(combinedName);
+        pdf.setFileType("application/pdf");
+        pdf.setFileSize((long) mergedPdfBytes.length);
+        pdf.setPdfData(mergedPdfBytes);
+        
+        try (PDDocument document = Loader.loadPDF(mergedPdfBytes)) {
+            pdf.setTotalPages(document.getNumberOfPages());
+        }
+        
+        pdf.setStatus("ORDER_CREATED");
+        pdf.setPaymentStatus("UNPAID");
+        
+        return repository.save(pdf);
+    }
+
+    private byte[] mergePdfs(java.util.List<byte[]> pdfBytesList) throws IOException {
+        PDFMergerUtility merger = new PDFMergerUtility();
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            merger.setDestinationStream(baos);
+            for (byte[] bytes : pdfBytesList) {
+                merger.addSource(new org.apache.pdfbox.io.RandomAccessReadBuffer(bytes));
+            }
+            merger.mergeDocuments(null);
+            return baos.toByteArray();
+        }
     }
 }
