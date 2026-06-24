@@ -45,7 +45,7 @@ Long getTotalPagesPrinted();
 )
 Long getPendingOrders();
 @Query(
-"SELECT COALESCE(SUM(p.price),0) FROM PdfFile p WHERE DATE(p.uploadTime)=CURRENT_DATE"
+"SELECT COALESCE(SUM(p.price),0) FROM PdfFile p WHERE CAST(p.uploadTime AS date)=CURRENT_DATE"
 )
 Double getTodayRevenue();
 

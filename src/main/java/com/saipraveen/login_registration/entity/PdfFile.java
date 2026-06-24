@@ -59,7 +59,7 @@ private String printType;
     private Integer totalPages;
 
     @Lob
-    @Column(columnDefinition = "LONGBLOB")
+    @Column(columnDefinition = "bytea")
     @com.fasterxml.jackson.annotation.JsonIgnore
     private byte[] pdfData;
 

@@ -158,6 +158,7 @@ public class QueueService {
 
         pdf.setStatus("COMPLETED");
         pdf.setFinishedAt(LocalDateTime.now());
+        pdf.setPdfData(null); // Delete the PDF binary file data immediately after printing is completed
 
         return repository.save(pdf);
     }
