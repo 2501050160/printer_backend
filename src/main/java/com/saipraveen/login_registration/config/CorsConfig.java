@@ -19,7 +19,9 @@ public class CorsConfig {
                 registry.addMapping("/**")
                         .allowedOrigins(
                                 "http://localhost:5173",
-                                "https://printer-frontend-six.vercel.app"
+                                "https://printer-frontend-six.vercel.app",
+                                "https://saipraveen.site",
+                                "https://www.saipraveen.site"
                         )
                         .allowedMethods("*")
                         .allowedHeaders("*")

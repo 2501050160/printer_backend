@@ -133,6 +133,20 @@ public class QueueService {
         return repository.save(pdf);
     }
 
+    @Transactional
+    public PdfFile proceedOrder(String orderId) {
+        PdfFile pdf = repository.findByOrderId(orderId);
+        if (pdf == null) {
+            throw new RuntimeException("Order not found");
+        }
+        if ("CANCEL_WINDOW".equals(pdf.getStatus())) {
+            pdf.setStatus("QUEUE");
+            pdf.setQueuedAt(LocalDateTime.now());
+            return repository.save(pdf);
+        }
+        return pdf;
+    }
+
     public PdfFile completeOrder(String orderId) {
 
         PdfFile pdf =

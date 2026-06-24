@@ -74,6 +74,16 @@ public class QueueController {
         );
     }
 
+    @PostMapping("/proceed")
+    public ResponseEntity<?> proceed(
+            @RequestParam String orderId
+    ) {
+
+        return ResponseEntity.ok(
+                queueService.proceedOrder(orderId)
+        );
+    }
+
     @PostMapping("/cancel")
     public ResponseEntity<?> cancel(
             @RequestParam String orderId,
