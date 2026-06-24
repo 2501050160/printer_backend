@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.saipraveen.login_registration.entity.PdfFile;
+import com.saipraveen.login_registration.entity.User;
 import com.saipraveen.login_registration.repository.PdfFileRepository;
 import com.saipraveen.login_registration.repository.UserRepository;
 
@@ -31,8 +32,11 @@ private UserService userService;
 @Autowired
 private PdfFileRepository repository;
 
-@Autowired
-private UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PricingService pricingService;
 
 public PdfFile savePdf(
         MultipartFile file,
@@ -145,10 +149,10 @@ public PdfFile updateOrder(
         }
     }
 
-    double rate =
-            printType.equals("COLOR")
-                    ? 5
-                    : 2;
+    Double rate = pricingService.getPrice(printType, pdf.getBlockLocation());
+    if (rate == null || rate == 0.0) {
+        rate = printType.equals("COLOR") ? 5.0 : 2.0;
+    }
 
     double price =
             pages *
@@ -356,6 +360,8 @@ public PdfFile markAsPaid(
             paymentId
     );
 
+    processReferralRewards(pdf);
+
     queueService.beginCancelWindow(pdf);
 
     return repository.save(pdf);
@@ -380,6 +386,8 @@ public PdfFile payWithWallet(String orderId) {
     userService.debitWallet(pdf.getUserId(), price);
 
     pdf.setRazorpayPaymentId("WALLET");
+
+    processReferralRewards(pdf);
 
     queueService.beginCancelWindow(pdf);
 
@@ -652,4 +660,64 @@ private void addPageRange(
     }
 }
 
+    @Transactional
+    public Map<String, Object> applyReferral(String orderId, String referralCode, Long currentUserId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        PdfFile pdf = repository.findByOrderId(orderId);
+        if (pdf == null) {
+            response.put("success", false);
+            response.put("message", "Order not found");
+            return response;
+        }
+
+        if (pdf.getAppliedReferralCode() != null) {
+            response.put("success", false);
+            response.put("message", "Referral code already applied");
+            return response;
+        }
+
+        User referrer = userRepository.findByReferralCode(referralCode.trim());
+        if (referrer == null) {
+            response.put("success", false);
+            response.put("message", "Invalid referral code");
+            return response;
+        }
+
+        if (referrer.getId().equals(currentUserId)) {
+            response.put("success", false);
+            response.put("message", "You cannot refer yourself");
+            return response;
+        }
+
+        pdf.setAppliedReferralCode(referralCode.trim());
+        repository.save(pdf);
+
+        response.put("success", true);
+        response.put("message", "Referral code applied successfully! Rewards will be credited upon payment.");
+        return response;
+    }
+
+    private void processReferralRewards(PdfFile pdf) {
+        String refCode = pdf.getAppliedReferralCode();
+        if (refCode != null && !refCode.trim().isEmpty()) {
+            try {
+                User referrer = userRepository.findByReferralCode(refCode.trim());
+                if (referrer != null && !referrer.getId().equals(pdf.getUserId())) {
+                    // Credit referrer ₹10
+                    userService.creditWallet(referrer.getId(), 10.0);
+                    // Credit referee (current order user) ₹5
+                    userService.creditWallet(pdf.getUserId(), 5.0);
+                    System.out.println("Applied referral code: " + refCode + ". Referrer " + referrer.getId() + " credited 10, referee " + pdf.getUserId() + " credited 5.");
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to apply referral code rewards: " + e.getMessage());
+            }
+        }
+    }
+
+    @Transactional
+    public void resetAllStats() {
+        repository.deleteAll();
+    }
 }

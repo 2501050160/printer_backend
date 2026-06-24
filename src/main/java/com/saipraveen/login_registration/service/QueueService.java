@@ -99,6 +99,7 @@ public class QueueService {
     }
 
     public PdfFile getNextForAgent(String blockLocation) {
+        recordHeartbeat(blockLocation);
 
         List<PdfFile> queue =
                 repository.findQueueByBlock(
@@ -283,5 +284,26 @@ public class QueueService {
         }
 
         return blockLocation.trim();
+    }
+
+    private static final java.util.Map<String, LocalDateTime> agentHeartbeats = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public void recordHeartbeat(String blockLocation) {
+        if (blockLocation != null) {
+            String normalized = normalizeBlock(blockLocation);
+            agentHeartbeats.put(normalized, LocalDateTime.now());
+        }
+    }
+
+    public boolean isAgentOnline(String blockLocation) {
+        if (blockLocation == null) {
+            return false;
+        }
+        String normalized = normalizeBlock(blockLocation);
+        LocalDateTime lastHeartbeat = agentHeartbeats.get(normalized);
+        if (lastHeartbeat == null) {
+            return false;
+        }
+        return lastHeartbeat.isAfter(LocalDateTime.now().minusSeconds(15));
     }
 }

@@ -58,6 +58,8 @@ private String printType;
 
     private Integer totalPages;
 
+    private String appliedReferralCode;
+
     @Column(columnDefinition = "bytea")
     @com.fasterxml.jackson.annotation.JsonIgnore
     private byte[] pdfData;
@@ -267,5 +269,13 @@ public void setTotalPages(Integer totalPages) {
 
     public void setDiscountAmount(Double discountAmount) {
         this.discountAmount = discountAmount;
+    }
+
+    public String getAppliedReferralCode() {
+        return appliedReferralCode;
+    }
+
+    public void setAppliedReferralCode(String appliedReferralCode) {
+        this.appliedReferralCode = appliedReferralCode;
     }
 }

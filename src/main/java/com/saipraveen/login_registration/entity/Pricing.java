@@ -18,6 +18,8 @@ public class Pricing {
 
     private Double pricePerPage;
 
+    private String blockLocation;
+
     public Long getId() {
         return id;
     }
@@ -40,5 +42,13 @@ public class Pricing {
 
     public void setPricePerPage(Double pricePerPage) {
         this.pricePerPage = pricePerPage;
+    }
+
+    public String getBlockLocation() {
+        return blockLocation;
+    }
+
+    public void setBlockLocation(String blockLocation) {
+        this.blockLocation = blockLocation;
     }
 }

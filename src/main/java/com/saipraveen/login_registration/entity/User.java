@@ -25,6 +25,11 @@ public class User {
 
     private Double walletBalance = 0.0;
 
+    @Column(unique = true)
+    private String referralCode;
+
+    private Boolean blocked = false;
+
     public User() {
     }
 
@@ -66,5 +71,21 @@ public class User {
 
     public void setWalletBalance(Double walletBalance) {
         this.walletBalance = walletBalance;
+    }
+
+    public String getReferralCode() {
+        return referralCode;
+    }
+
+    public void setReferralCode(String referralCode) {
+        this.referralCode = referralCode;
+    }
+
+    public Boolean getBlocked() {
+        return blocked == null ? false : blocked;
+    }
+
+    public void setBlocked(Boolean blocked) {
+        this.blocked = blocked;
     }
 }

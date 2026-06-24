@@ -14,20 +14,27 @@ public class UserService {
     private UserRepository repository;
 
     public User registerUser(User user) {
-
+        if (user.getReferralCode() == null || user.getReferralCode().trim().isEmpty()) {
+            String code;
+            do {
+                code = "REF-" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+            } while (repository.findByReferralCode(code) != null);
+            user.setReferralCode(code);
+        }
+        user.setBlocked(false);
         return repository.save(user);
     }
 
     public User loginUser(String email, String password) {
-
         User user = repository.findByEmail(email);
-
-        if (user != null &&
-                user.getPassword().equals(password)) {
-
-            return user;
+        if (user != null) {
+            if (Boolean.TRUE.equals(user.getBlocked())) {
+                throw new RuntimeException("This account is blocked by Admin.");
+            }
+            if (user.getPassword().equals(password)) {
+                return user;
+            }
         }
-
         return null;
     }
 
@@ -80,5 +87,22 @@ public class UserService {
         user.setWalletBalance(current - amount);
 
         return repository.save(user);
+    }
+
+    public java.util.List<User> getAllUsers() {
+        return repository.findAll();
+    }
+
+    @Transactional
+    public User toggleBlockUser(Long id) {
+        User user = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setBlocked(!user.getBlocked());
+        return repository.save(user);
+    }
+
+    @Transactional
+    public void deleteUser(Long id) {
+        repository.deleteById(id);
     }
 }

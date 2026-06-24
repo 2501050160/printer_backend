@@ -35,20 +35,23 @@ public class AuthController {
     public ResponseEntity<?> loginUser(
             @RequestBody User request) {
 
-        User user =
-                service.loginUser(
-                        request.getEmail(),
-                        request.getPassword());
+        try {
+            User user =
+                    service.loginUser(
+                            request.getEmail(),
+                            request.getPassword());
 
-        if (user != null) {
-
-            return ResponseEntity.ok(user);
-
-        } else {
-
+            if (user != null) {
+                return ResponseEntity.ok(user);
+            } else {
+                return ResponseEntity
+                        .badRequest()
+                        .body("Invalid Email or Password");
+            }
+        } catch (RuntimeException e) {
             return ResponseEntity
                     .badRequest()
-                    .body("Invalid Email or Password");
+                    .body(e.getMessage());
         }
     }
 }

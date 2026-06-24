@@ -20,43 +20,31 @@ public class PricingController {
     private PricingService service;
 
     @GetMapping("/all")
-    public ResponseEntity<?> getPrices() {
-
-        return ResponseEntity.ok(
-                service.getPrices()
-        );
+    public ResponseEntity<?> getPrices(@RequestParam(required = false) String blockLocation) {
+        if (blockLocation != null && !blockLocation.trim().isEmpty()) {
+            return ResponseEntity.ok(service.getPricesByBlock(blockLocation));
+        }
+        return ResponseEntity.ok(service.getPrices());
     }
 
     @PostMapping("/update")
     public ResponseEntity<?> updatePrice(
-
             @RequestParam String printType,
-
-            @RequestParam Double pricePerPage
-
+            @RequestParam Double pricePerPage,
+            @RequestParam String blockLocation
     ) {
-
         return ResponseEntity.ok(
-
-                service.updatePrice(
-                        printType,
-                        pricePerPage
-                )
+                service.updatePrice(printType, pricePerPage, blockLocation)
         );
     }
 
     @GetMapping("/price")
     public ResponseEntity<?> getPrice(
-
-            @RequestParam String printType
-
+            @RequestParam String printType,
+            @RequestParam String blockLocation
     ) {
-
         return ResponseEntity.ok(
-
-                service.getPrice(
-                        printType
-                )
+                service.getPrice(printType, blockLocation)
         );
     }
 }

@@ -272,4 +272,14 @@ public ResponseEntity<?> cancelWindow(
     );
 }
 
+    @PostMapping("/applyReferral")
+    public ResponseEntity<?> applyReferral(
+            @RequestParam String orderId,
+            @RequestParam String referralCode,
+            @RequestParam Long userId
+    ) {
+        return ResponseEntity.ok(
+                service.applyReferral(orderId, referralCode, userId)
+        );
+    }
 }

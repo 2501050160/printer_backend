@@ -1,7 +1,7 @@
 package com.saipraveen.login_registration.service;
 
 import java.util.List;
-
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,52 +14,55 @@ public class PricingService {
     @Autowired
     private PricingRepository pricingRepository;
 
-    public List<Pricing> getPrices() {
+    @PostConstruct
+    public void initDefaultPrices() {
+        String[] blocks = {"C Block", "R Block", "L Block"};
+        for (String block : blocks) {
+            initializeBlockPrice(block, "BW", 2.0);
+            initializeBlockPrice(block, "COLOR", 5.0);
+        }
+    }
 
+    private void initializeBlockPrice(String block, String printType, Double price) {
+        Pricing existing = pricingRepository.findByPrintTypeAndBlockLocation(printType, block);
+        if (existing == null) {
+            Pricing pricing = new Pricing();
+            pricing.setBlockLocation(block);
+            pricing.setPrintType(printType);
+            pricing.setPricePerPage(price);
+            pricingRepository.save(pricing);
+        }
+    }
+
+    public List<Pricing> getPrices() {
         return pricingRepository.findAll();
     }
 
-    public Pricing updatePrice(
-            String printType,
-            Double pricePerPage
-    ) {
-
-        Pricing pricing =
-                pricingRepository.findByPrintType(
-                        printType
-                );
-
-        if (pricing == null) {
-
-            pricing = new Pricing();
-            pricing.setPrintType(
-                    printType
-            );
-        }
-
-        pricing.setPricePerPage(
-                pricePerPage
-        );
-
-        return pricingRepository.save(
-                pricing
-        );
+    public List<Pricing> getPricesByBlock(String blockLocation) {
+        return pricingRepository.findByBlockLocation(blockLocation);
     }
 
-    public Double getPrice(
-            String printType
-    ) {
-
-        Pricing pricing =
-                pricingRepository.findByPrintType(
-                        printType
-                );
-
+    public Pricing updatePrice(String printType, Double pricePerPage, String blockLocation) {
+        Pricing pricing = pricingRepository.findByPrintTypeAndBlockLocation(printType, blockLocation);
         if (pricing == null) {
+            pricing = new Pricing();
+            pricing.setPrintType(printType);
+            pricing.setBlockLocation(blockLocation);
+        }
+        pricing.setPricePerPage(pricePerPage);
+        return pricingRepository.save(pricing);
+    }
 
+    public Double getPrice(String printType, String blockLocation) {
+        Pricing pricing = pricingRepository.findByPrintTypeAndBlockLocation(printType, blockLocation);
+        if (pricing == null) {
+            // Check global fallback without blockLocation just in case
+            Pricing global = pricingRepository.findByPrintType(printType);
+            if (global != null) {
+                return global.getPricePerPage();
+            }
             return 0.0;
         }
-
         return pricing.getPricePerPage();
     }
 }

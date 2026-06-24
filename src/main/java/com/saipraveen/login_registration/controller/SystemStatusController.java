@@ -1,0 +1,74 @@
+package com.saipraveen.login_registration.controller;
+
+import java.util.HashMap;
+import java.util.Map;
+import javax.sql.DataSource;
+import java.sql.Connection;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.saipraveen.login_registration.service.QueueService;
+import com.saipraveen.login_registration.service.PrinterConfigService;
+import com.saipraveen.login_registration.entity.PrinterConfig;
+
+@RestController
+@RequestMapping("/api/system")
+@CrossOrigin(origins = "http://localhost:5173")
+public class SystemStatusController {
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Autowired
+    private QueueService queueService;
+
+    @Autowired
+    private PrinterConfigService printerService;
+
+    @GetMapping("/db-status")
+    public ResponseEntity<?> getDbStatus() {
+        Map<String, Object> status = new HashMap<>();
+        boolean connected = checkDbConnection();
+        status.put("databaseConnected", connected);
+        return ResponseEntity.ok(status);
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<?> getSystemStatus(@RequestParam String blockLocation) {
+        Map<String, Object> status = new HashMap<>();
+        
+        boolean dbConnected = checkDbConnection();
+        boolean agentOnline = queueService.isAgentOnline(blockLocation);
+        boolean printerConfigured = false;
+        
+        try {
+            PrinterConfig config = printerService.getPrinterByBlock(blockLocation);
+            if (config != null && Boolean.TRUE.equals(config.getActive()) 
+                    && config.getPrinterName() != null && !config.getPrinterName().trim().isEmpty()) {
+                printerConfigured = true;
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to look up printer config: " + e.getMessage());
+        }
+
+        status.put("databaseConnected", dbConnected);
+        status.put("agentOnline", agentOnline);
+        status.put("printerConfigured", printerConfigured);
+        
+        return ResponseEntity.ok(status);
+    }
+
+    private boolean checkDbConnection() {
+        try (Connection conn = dataSource.getConnection()) {
+            return conn != null && !conn.isClosed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}
