@@ -20,9 +20,9 @@ public class DatabaseConfig {
     @Primary
     public DataSource dataSource() {
         String databaseUrl = System.getenv("DATABASE_URL");
-        if (databaseUrl == null || !databaseUrl.startsWith("postgresql://")) {
+        if (databaseUrl == null || (!databaseUrl.startsWith("postgresql://") && !databaseUrl.startsWith("postgres://"))) {
             String springUrl = env.getProperty("spring.datasource.url");
-            if (springUrl != null && springUrl.startsWith("postgresql://")) {
+            if (springUrl != null && (springUrl.startsWith("postgresql://") || springUrl.startsWith("postgres://"))) {
                 databaseUrl = springUrl;
             }
         }
@@ -31,22 +31,31 @@ public class DatabaseConfig {
         String username = null;
         String password = null;
 
-        if (databaseUrl != null && databaseUrl.startsWith("postgresql://")) {
-            try {
-                String cleanUrl = databaseUrl.substring("postgresql://".length());
-                int atIndex = cleanUrl.indexOf("@");
-                if (atIndex != -1) {
-                    String credentials = cleanUrl.substring(0, atIndex);
-                    String rest = cleanUrl.substring(atIndex + 1);
-                    
-                    String[] credParts = credentials.split(":", 2);
-                    username = credParts[0];
-                    password = credParts.length > 1 ? credParts[1] : "";
-                    
-                    jdbcUrl = "jdbc:postgresql://" + rest;
+        if (databaseUrl != null) {
+            String prefix = null;
+            if (databaseUrl.startsWith("postgresql://")) {
+                prefix = "postgresql://";
+            } else if (databaseUrl.startsWith("postgres://")) {
+                prefix = "postgres://";
+            }
+
+            if (prefix != null) {
+                try {
+                    String cleanUrl = databaseUrl.substring(prefix.length());
+                    int atIndex = cleanUrl.indexOf("@");
+                    if (atIndex != -1) {
+                        String credentials = cleanUrl.substring(0, atIndex);
+                        String rest = cleanUrl.substring(atIndex + 1);
+                        
+                        String[] credParts = credentials.split(":", 2);
+                        username = credParts[0];
+                        password = credParts.length > 1 ? credParts[1] : "";
+                        
+                        jdbcUrl = "jdbc:postgresql://" + rest;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to parse database URL dynamically: " + e.getMessage());
                 }
-            } catch (Exception e) {
-                System.err.println("Failed to parse DATABASE_URL dynamically: " + e.getMessage());
             }
         }
 
