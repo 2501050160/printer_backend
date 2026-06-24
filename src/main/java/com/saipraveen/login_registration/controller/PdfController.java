@@ -161,7 +161,9 @@ public ResponseEntity<byte[]> downloadPdf(
     PdfFile pdf =
             service.getPdfById(id);
 
-    if (pdf.getPdfData() == null) {
+    byte[] printableData = service.getPrintablePdfData(pdf);
+
+    if (printableData == null) {
 
         return ResponseEntity.status(
                 HttpStatus.GONE
@@ -179,7 +181,7 @@ public ResponseEntity<byte[]> downloadPdf(
                     MediaType.APPLICATION_PDF
             )
             .body(
-                    pdf.getPdfData()
+                    printableData
             );
 }
 

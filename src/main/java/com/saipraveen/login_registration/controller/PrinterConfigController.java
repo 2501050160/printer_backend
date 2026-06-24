@@ -16,7 +16,6 @@ import com.saipraveen.login_registration.service.PrinterConfigService;
 
 @RestController
 @RequestMapping("/api/printer")
-@CrossOrigin(origins = "*")
 public class PrinterConfigController {
 
     @Autowired

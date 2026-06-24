@@ -14,7 +14,6 @@ import com.saipraveen.login_registration.service.QueueService;
 
 @RestController
 @RequestMapping("/api/queue")
-@CrossOrigin(origins = "*")
 public class QueueController {
 
     @Autowired

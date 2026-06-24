@@ -60,6 +60,7 @@ private String printType;
 
     @Lob
     @Column(columnDefinition = "LONGBLOB")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private byte[] pdfData;
 
     public PdfFile() {

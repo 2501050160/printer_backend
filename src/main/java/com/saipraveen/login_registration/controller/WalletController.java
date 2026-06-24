@@ -12,7 +12,6 @@ import com.saipraveen.login_registration.service.UserService;
 
 @RestController
 @RequestMapping("/api/wallet")
-@CrossOrigin(origins = "*")
 public class WalletController {
 
     @Autowired

@@ -126,23 +126,23 @@ public PdfFile updateOrder(
             )
     );
 
-    int pages;
+    int pages = 1;
 
-    if ("ALL".equals(selectedPages)) {
-
-        pages =
-            pdf.getTotalPages();
-
+    if ("ALL".equals(selectedPages) || selectedPages == null || selectedPages.trim().isEmpty()) {
+        pages = pdf.getTotalPages() != null ? pdf.getTotalPages() : 1;
     } else {
-
-        String[] range =
-                selectedPages.split("-");
-
-        pages =
-            Integer.parseInt(range[1])
-            -
-            Integer.parseInt(range[0])
-            + 1;
+        try {
+            String[] range = selectedPages.split("-");
+            if (range.length == 2) {
+                pages = Integer.parseInt(range[1].trim())
+                        - Integer.parseInt(range[0].trim())
+                        + 1;
+            } else if (range.length == 1) {
+                pages = 1;
+            }
+        } catch (Exception e) {
+            pages = 1;
+        }
     }
 
     double rate =
@@ -302,6 +302,25 @@ public PdfFile getPdfById(
                                     "PDF Not Found"
                             )
             );
+}
+
+public byte[] getPrintablePdfData(PdfFile pdf) {
+    if (pdf.getPdfData() == null) {
+        return null;
+    }
+    if (pdf.getSelectedPages() == null || "ALL".equalsIgnoreCase(pdf.getSelectedPages().trim())) {
+        return pdf.getPdfData();
+    }
+    try (PDDocument document = Loader.loadPDF(pdf.getPdfData())) {
+        try (PDDocument filteredDoc = createPrintableDocument(document, pdf.getSelectedPages())) {
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            filteredDoc.save(out);
+            return out.toByteArray();
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+        return pdf.getPdfData(); // Fallback to original document on error
+    }
 }
 
 
