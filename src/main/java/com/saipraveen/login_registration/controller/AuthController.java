@@ -38,7 +38,7 @@ public class AuthController {
         try {
             User user =
                     service.loginUser(
-                            request.getEmail(),
+                            request.getUsername(),
                             request.getPassword());
 
             if (user != null) {
@@ -46,7 +46,7 @@ public class AuthController {
             } else {
                 return ResponseEntity
                         .badRequest()
-                        .body("Invalid Email or Password");
+                        .body("Invalid Username or Password");
             }
         } catch (RuntimeException e) {
             return ResponseEntity
