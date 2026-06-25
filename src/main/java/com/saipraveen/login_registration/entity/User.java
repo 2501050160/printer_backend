@@ -23,6 +23,9 @@ public class User {
 
     private String password;
 
+    @Column(unique = true)
+    private String phone;
+
     private Double walletBalance = 0.0;
 
     @Column(unique = true)
@@ -55,6 +58,14 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getPassword() {

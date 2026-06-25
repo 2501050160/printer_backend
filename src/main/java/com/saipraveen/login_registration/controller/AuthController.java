@@ -46,7 +46,7 @@ public class AuthController {
             } else {
                 return ResponseEntity
                         .badRequest()
-                        .body("Invalid Username or Password");
+                        .body("Invalid Username/Phone or Password");
             }
         } catch (RuntimeException e) {
             return ResponseEntity
