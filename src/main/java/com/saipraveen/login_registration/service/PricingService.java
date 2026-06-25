@@ -63,9 +63,9 @@ public class PricingService {
         Pricing pricing = pricingRepository.findByPrintTypeAndBlockLocation(printType, blockLocation);
         if (pricing == null) {
             // Check global fallback without blockLocation just in case
-            Pricing global = pricingRepository.findByPrintType(printType);
-            if (global != null) {
-                return global.getPricePerPage();
+            java.util.List<Pricing> global = pricingRepository.findByPrintType(printType);
+            if (global != null && !global.isEmpty()) {
+                return global.get(0).getPricePerPage();
             }
             return 0.0;
         }
