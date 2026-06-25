@@ -15,7 +15,7 @@ public class UserService {
 
     public User registerUser(User user) {
         if (user.getName() == null || user.getName().trim().isEmpty()) {
-            user.setName(user.getUsername());
+            user.setName(user.getEmail());
         }
         if (user.getReferralCode() == null || user.getReferralCode().trim().isEmpty()) {
             String code;
@@ -28,8 +28,8 @@ public class UserService {
         return repository.save(user);
     }
 
-    public User loginUser(String identifier, String password) {
-        User user = repository.findByUsernameOrPhone(identifier, identifier);
+    public User loginUser(String email, String password) {
+        User user = repository.findByEmail(email);
         if (user != null) {
             if (Boolean.TRUE.equals(user.getBlocked())) {
                 throw new RuntimeException("This account is blocked by Admin.");
