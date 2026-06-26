@@ -21,7 +21,7 @@ public class UserService {
 
     public User registerUser(User user) {
         if (repository.findByEmail(user.getEmail()) != null) {
-            throw new RuntimeException("Email is already registered.");
+            throw new RuntimeException("Username is already registered.");
         }
         if (user.getReferralCode() == null || user.getReferralCode().trim().isEmpty()) {
             String code;
@@ -31,21 +31,9 @@ public class UserService {
             user.setReferralCode(code);
         }
         user.setBlocked(false);
-        user.setEmailVerified(false);
-        
-        // Generate a 6-digit OTP
-        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
-        user.setOtp(otp);
-        user.setOtpExpiry(java.time.LocalDateTime.now().plusHours(24));
+        user.setEmailVerified(true);
         
         User savedUser = repository.save(user);
-        
-        emailService.sendOtpEmail(
-            savedUser.getEmail(),
-            otp,
-            "Verify your Email - Cloud Print",
-            "Welcome to Cloud Print! Please use the following 6-digit OTP code to verify your email address:\n\n%s\n\nThis code is valid for 24 hours."
-        );
         
         return savedUser;
     }
