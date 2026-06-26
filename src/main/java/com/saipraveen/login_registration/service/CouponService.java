@@ -18,10 +18,6 @@ public class CouponService {
     public Coupon createCoupon(
             Coupon coupon) {
 
-        if (coupon.getDiscountPercentage() > 95) {
-            throw new RuntimeException("Maximum allowed discount limit is 95%");
-        }
-
         coupon.setUsedCount(0);
         coupon.setActive(true);
 

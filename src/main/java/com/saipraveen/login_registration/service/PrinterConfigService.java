@@ -41,21 +41,4 @@ public class PrinterConfigService {
 
         repository.deleteById(id);
     }
-
-    public void decrementPaper(String blockLocation, int pages) {
-        PrinterConfig printer = repository.findByBlockLocation(blockLocation);
-        if (printer != null) {
-            int current = printer.getPaperCount() != null ? printer.getPaperCount() : 0;
-            printer.setPaperCount(Math.max(0, current - pages));
-            repository.save(printer);
-        }
-    }
-
-    public void updatePaperCount(String blockLocation, int count) {
-        PrinterConfig printer = repository.findByBlockLocation(blockLocation);
-        if (printer != null) {
-            printer.setPaperCount(count);
-            repository.save(printer);
-        }
-    }
 }

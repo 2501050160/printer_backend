@@ -14,9 +14,6 @@ public class UserService {
     private UserRepository repository;
 
     public User registerUser(User user) {
-        if (user.getName() == null || user.getName().trim().isEmpty()) {
-            user.setName(user.getEmail());
-        }
         if (user.getReferralCode() == null || user.getReferralCode().trim().isEmpty()) {
             String code;
             do {

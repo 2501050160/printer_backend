@@ -66,22 +66,5 @@ public ResponseEntity<?> savePrinter(
         return ResponseEntity.ok("Printer deleted");
     }
 
-    @GetMapping("/paper")
-    public ResponseEntity<?> getPaperCount(@RequestParam String blockLocation) {
-        PrinterConfig printer = service.getPrinterByBlock(blockLocation);
-        if (printer == null) {
-            return ResponseEntity.ok(0);
-        }
-        return ResponseEntity.ok(printer.getPaperCount() != null ? printer.getPaperCount() : 0);
-    }
-
-    @PostMapping("/updatePaper")
-    public ResponseEntity<?> updatePaperCount(
-            @RequestParam String blockLocation,
-            @RequestParam Integer paperCount
-    ) {
-        service.updatePaperCount(blockLocation, paperCount);
-        return ResponseEntity.ok("Paper count updated successfully");
-    }
  
 }

@@ -64,24 +64,6 @@ public class SystemStatusController {
         return ResponseEntity.ok(status);
     }
 
-    @Autowired
-    private com.saipraveen.login_registration.service.SystemSettingService systemSettingService;
-
-    @GetMapping("/settings")
-    public ResponseEntity<?> getPublicSettings() {
-        Map<String, Object> settings = new HashMap<>();
-        settings.put("referralEnabled", systemSettingService.getSettingBool("referral_enabled", true));
-        settings.put("referrerAmount", systemSettingService.getSettingDouble("referral_referrer_amount", 10.0));
-        settings.put("refereeAmount", systemSettingService.getSettingDouble("referral_referee_amount", 5.0));
-        settings.put("popupEnabled", systemSettingService.getSettingBool("referral_popup_enabled", true));
-        settings.put("popupMessage", systemSettingService.getSetting("referral_popup_message", ""));
-        settings.put("adEnabled", systemSettingService.getSettingBool("ad_enabled", true));
-        settings.put("adText", systemSettingService.getSetting("ad_text", ""));
-        settings.put("generalPopupEnabled", systemSettingService.getSettingBool("general_popup_enabled", false));
-        settings.put("generalPopupMessage", systemSettingService.getSetting("general_popup_message", ""));
-        return ResponseEntity.ok(settings);
-    }
-
     private boolean checkDbConnection() {
         try (Connection conn = dataSource.getConnection()) {
             return conn != null && !conn.isClosed();

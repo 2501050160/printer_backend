@@ -23,9 +23,6 @@ public class User {
 
     private String password;
 
-    @Column(unique = true)
-    private String phone;
-
     private Double walletBalance = 0.0;
 
     @Column(unique = true)
@@ -52,28 +49,12 @@ public class User {
         this.name = name;
     }
 
-    public String getUsername() {
-        return email;
-    }
-
-    public void setUsername(String username) {
-        this.email = username;
-    }
-
     public String getEmail() {
         return email;
     }
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
     }
 
     public String getPassword() {

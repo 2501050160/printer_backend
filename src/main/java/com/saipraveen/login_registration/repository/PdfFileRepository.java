@@ -161,6 +161,4 @@ int clearPdfDataForUnpaidOlderThan(
         @Param("cutoff") LocalDateTime cutoff
 );
 
-long countByUserIdAndPaymentStatus(Long userId, String paymentStatus);
-
 }

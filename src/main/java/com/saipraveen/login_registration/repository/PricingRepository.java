@@ -7,7 +7,7 @@ import com.saipraveen.login_registration.entity.Pricing;
 public interface PricingRepository
         extends JpaRepository<Pricing, Long> {
 
-    java.util.List<Pricing> findByPrintType(String printType);
+    Pricing findByPrintType(String printType);
 
     Pricing findByPrintTypeAndBlockLocation(String printType, String blockLocation);
 

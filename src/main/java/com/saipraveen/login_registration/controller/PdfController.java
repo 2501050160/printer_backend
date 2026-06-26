@@ -79,33 +79,30 @@ public ResponseEntity<?> updatePayment(
 
 @PostMapping("/upload")
 public ResponseEntity<?> uploadPdf(
-        @RequestParam(value = "file", required = false) MultipartFile file,
-        @RequestParam(value = "files", required = false) MultipartFile[] files,
-        @RequestParam("userId") Long userId,
-        @RequestParam(value = "customerName", required = false) String customerName,
-        @RequestParam(value = "blockLocation", required = false) String blockLocation
+
+        @RequestParam("file")
+        MultipartFile file,
+
+        @RequestParam("userId")
+        Long userId,
+
+        @RequestParam(value = "customerName", required = false)
+        String customerName,
+
+        @RequestParam(value = "blockLocation", required = false)
+        String blockLocation
+
 ) throws IOException {
-    if (files != null && files.length > 0) {
-        return ResponseEntity.ok(
-                service.saveMultiplePdfs(
-                        files,
-                        userId,
-                        customerName,
-                        blockLocation
-                )
-        );
-    } else if (file != null) {
-        return ResponseEntity.ok(
-                service.savePdf(
-                        file,
-                        userId,
-                        customerName,
-                        blockLocation
-                )
-        );
-    } else {
-        return ResponseEntity.badRequest().body("No file or files uploaded");
-    }
+
+    return ResponseEntity.ok(
+
+            service.savePdf(
+                    file,
+                    userId,
+                    customerName,
+                    blockLocation
+            )
+    );
 }
 
 @GetMapping("/orders")
