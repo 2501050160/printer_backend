@@ -40,27 +40,12 @@ public class UserService {
         
         User savedUser = repository.save(user);
         
-        // Also generate verification link token as a fallback
-        String linkToken = "";
-        try {
-            linkToken = verificationService.createVerificationToken(savedUser);
-        } catch (Exception ex) {
-            System.err.println("Failed to generate verification link token: " + ex.getMessage());
-        }
-        
-        // Construct the fall-back verification URL
-        String verifyUrl = "https://printer-backend-34ih.onrender.com/api/verify?token=" + linkToken;
-        
-        try {
-            emailService.sendOtpEmail(
-                savedUser.getEmail(),
-                otp,
-                "Verify your Email - Cloud Print",
-                "Welcome to Cloud Print! Please use the following 6-digit OTP code to verify your email address:\n\n%s\n\nAlternatively, if you cannot enter the OTP, click here to verify instantly:\n" + verifyUrl + "\n\nThis code is valid for 24 hours."
-            );
-        } catch (Exception e) {
-            System.err.println("Resend API failed to send email. Storing OTP and link verification token inside database. Console fallback output: " + otp);
-        }
+        emailService.sendOtpEmail(
+            savedUser.getEmail(),
+            otp,
+            "Verify your Email - Cloud Print",
+            "Welcome to Cloud Print! Please use the following 6-digit OTP code to verify your email address:\n\n%s\n\nThis code is valid for 24 hours."
+        );
         
         return savedUser;
     }
