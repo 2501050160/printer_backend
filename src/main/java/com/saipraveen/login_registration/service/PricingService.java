@@ -14,10 +14,16 @@ public class PricingService {
     @Autowired
     private PricingRepository pricingRepository;
 
+    @Autowired
+    private com.saipraveen.login_registration.repository.CampusBlockRepository campusBlockRepository;
+
     @PostConstruct
     public void initDefaultPrices() {
         String[] blocks = {"C Block", "R Block", "L Block"};
         for (String block : blocks) {
+            if (campusBlockRepository.findByName(block) == null) {
+                campusBlockRepository.save(new com.saipraveen.login_registration.entity.CampusBlock(block));
+            }
             initializeBlockPrice(block, "BW", 2.0);
             initializeBlockPrice(block, "COLOR", 5.0);
         }
@@ -57,9 +63,9 @@ public class PricingService {
         Pricing pricing = pricingRepository.findByPrintTypeAndBlockLocation(printType, blockLocation);
         if (pricing == null) {
             // Check global fallback without blockLocation just in case
-            Pricing global = pricingRepository.findByPrintType(printType);
-            if (global != null) {
-                return global.getPricePerPage();
+            java.util.List<Pricing> global = pricingRepository.findByPrintType(printType);
+            if (global != null && !global.isEmpty()) {
+                return global.get(0).getPricePerPage();
             }
             return 0.0;
         }

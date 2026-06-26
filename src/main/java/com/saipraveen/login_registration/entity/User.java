@@ -88,4 +88,34 @@ public class User {
     public void setBlocked(Boolean blocked) {
         this.blocked = blocked;
     }
+
+    private Boolean emailVerified = false;
+
+    private String otp;
+
+    private java.time.LocalDateTime otpExpiry;
+
+    public Boolean getEmailVerified() {
+        return emailVerified == null ? false : emailVerified;
+    }
+
+    public void setEmailVerified(Boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
+    }
+
+    public java.time.LocalDateTime getOtpExpiry() {
+        return otpExpiry;
+    }
+
+    public void setOtpExpiry(java.time.LocalDateTime otpExpiry) {
+        this.otpExpiry = otpExpiry;
+    }
 }

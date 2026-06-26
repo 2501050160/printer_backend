@@ -7,9 +7,20 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import javax.imageio.ImageIO;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.printing.PDFPageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -37,6 +48,26 @@ private PdfFileRepository repository;
 
     @Autowired
     private PricingService pricingService;
+
+    @Autowired
+    private SystemSettingService systemSettingService;
+
+    @jakarta.annotation.PostConstruct
+    public void initSystemSettings() {
+        initSetting("referral_enabled", "true");
+        initSetting("referral_referrer_amount", "10.0");
+        initSetting("referral_referee_amount", "5.0");
+        initSetting("referral_popup_enabled", "true");
+        initSetting("referral_popup_message", "Welcome! Share your referral code with friends. They get Rs. 5 and you get Rs. 10 on their first checkout!");
+        initSetting("ad_enabled", "true");
+        initSetting("ad_text", "📢 REFERRAL SPECIAL: Refer your friends using your unique Referral Code shown below and earn ₹10 instantly when they checkout! They get ₹5 off on their first order!");
+    }
+
+    private void initSetting(String key, String defaultValue) {
+        if (systemSettingService.getSetting(key, null) == null) {
+            systemSettingService.setSetting(key, defaultValue);
+        }
+    }
 
 public PdfFile savePdf(
         MultipartFile file,
@@ -78,14 +109,35 @@ public PdfFile savePdf(
     pdf.setUploadTime(LocalDateTime.now());
 
     // File Details
-    pdf.setFileName(file.getOriginalFilename());
-    pdf.setFileType(file.getContentType());
-    pdf.setFileSize(file.getSize());
-    pdf.setPdfData(file.getBytes());
+    byte[] fileBytes = file.getBytes();
+    String contentType = file.getContentType();
+    String filename = file.getOriginalFilename();
+    boolean isImage = false;
+    if (filename != null) {
+        String lower = filename.toLowerCase();
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")) {
+            isImage = true;
+        }
+    }
+
+    if (isImage) {
+        fileBytes = convertImageToPdf(fileBytes, contentType);
+        pdf.setFileType("application/pdf");
+        if (filename != null && !filename.toLowerCase().endsWith(".pdf")) {
+            pdf.setFileName(filename + ".pdf");
+        } else {
+            pdf.setFileName(filename);
+        }
+    } else {
+        pdf.setFileType(contentType);
+        pdf.setFileName(filename);
+    }
+    pdf.setFileSize((long) fileBytes.length);
+    pdf.setPdfData(fileBytes);
 
     // Calculate PDF Page Count
     try (PDDocument document =
-                 Loader.loadPDF(file.getBytes())) {
+                 Loader.loadPDF(fileBytes)) {
 
         int pageCount =
                 document.getNumberOfPages();
@@ -105,6 +157,24 @@ pdf.setPaymentStatus("UNPAID");
     return repository.save(pdf);
 }
 
+private byte[] convertImageToPdf(byte[] imageBytes, String contentType) throws IOException {
+    try (PDDocument document = new PDDocument();
+         ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+        PDPage page = new PDPage(new PDRectangle(image.getWidth(), image.getHeight()));
+        document.addPage(page);
+
+        PDImageXObject pdImage = (contentType != null && contentType.contains("png"))
+                ? LosslessFactory.createFromImage(document, image)
+                : JPEGFactory.createFromImage(document, image);
+
+        try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+            contentStream.drawImage(pdImage, 0, 0);
+        }
+        document.save(baos);
+        return baos.toByteArray();
+    }
+}
 
 public PdfFile updateOrder(
         String orderId,
@@ -664,6 +734,13 @@ private void addPageRange(
     public Map<String, Object> applyReferral(String orderId, String referralCode, Long currentUserId) {
         Map<String, Object> response = new HashMap<>();
         
+        // 1. Verify Referral Program is enabled globally
+        if (!systemSettingService.getSettingBool("referral_enabled", true)) {
+            response.put("success", false);
+            response.put("message", "Referral program is currently deactivated");
+            return response;
+        }
+
         PdfFile pdf = repository.findByOrderId(orderId);
         if (pdf == null) {
             response.put("success", false);
@@ -690,6 +767,14 @@ private void addPageRange(
             return response;
         }
 
+        // 2. Verify user is on their first order
+        long paidOrders = repository.countByUserIdAndPaymentStatus(currentUserId, "PAID");
+        if (paidOrders > 0) {
+            response.put("success", false);
+            response.put("message", "Referral codes can only be applied to your first order.");
+            return response;
+        }
+
         pdf.setAppliedReferralCode(referralCode.trim());
         repository.save(pdf);
 
@@ -699,16 +784,22 @@ private void addPageRange(
     }
 
     private void processReferralRewards(PdfFile pdf) {
+        if (!systemSettingService.getSettingBool("referral_enabled", true)) {
+            return;
+        }
         String refCode = pdf.getAppliedReferralCode();
         if (refCode != null && !refCode.trim().isEmpty()) {
             try {
                 User referrer = userRepository.findByReferralCode(refCode.trim());
                 if (referrer != null && !referrer.getId().equals(pdf.getUserId())) {
-                    // Credit referrer ₹10
-                    userService.creditWallet(referrer.getId(), 10.0);
-                    // Credit referee (current order user) ₹5
-                    userService.creditWallet(pdf.getUserId(), 5.0);
-                    System.out.println("Applied referral code: " + refCode + ". Referrer " + referrer.getId() + " credited 10, referee " + pdf.getUserId() + " credited 5.");
+                    double referrerAmt = systemSettingService.getSettingDouble("referral_referrer_amount", 10.0);
+                    double refereeAmt = systemSettingService.getSettingDouble("referral_referee_amount", 5.0);
+
+                    // Credit referrer
+                    userService.creditWallet(referrer.getId(), referrerAmt);
+                    // Credit referee (current order user)
+                    userService.creditWallet(pdf.getUserId(), refereeAmt);
+                    System.out.println("Applied referral code: " + refCode + ". Referrer " + referrer.getId() + " credited " + referrerAmt + ", referee " + pdf.getUserId() + " credited " + refereeAmt + ".");
                 }
             } catch (Exception e) {
                 System.err.println("Failed to apply referral code rewards: " + e.getMessage());
@@ -719,5 +810,90 @@ private void addPageRange(
     @Transactional
     public void resetAllStats() {
         repository.deleteAll();
+    }
+
+    public PdfFile saveMultiplePdfs(
+            MultipartFile[] files,
+            Long userId,
+            String customerName,
+            String blockLocation
+    ) throws IOException {
+        java.util.List<byte[]> pdfBytesList = new java.util.ArrayList<>();
+        String combinedName = "";
+        
+        for (int i = 0; i < files.length; i++) {
+            MultipartFile file = files[i];
+            byte[] fileBytes = file.getBytes();
+            String filename = file.getOriginalFilename();
+            String contentType = file.getContentType();
+            
+            boolean isImage = false;
+            if (filename != null) {
+                String lower = filename.toLowerCase();
+                if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")) {
+                    isImage = true;
+                }
+            }
+            
+            if (isImage) {
+                fileBytes = convertImageToPdf(fileBytes, contentType);
+            }
+            
+            pdfBytesList.add(fileBytes);
+            
+            String baseName = filename != null ? filename : "Document";
+            if (isImage && !baseName.toLowerCase().endsWith(".pdf")) {
+                baseName = baseName + ".pdf";
+            }
+            
+            if (i == 0) {
+                combinedName = baseName;
+            } else if (i == 1) {
+                combinedName = combinedName + " + " + baseName;
+            }
+        }
+        
+        if (files.length > 2) {
+            combinedName = combinedName + " (and " + (files.length - 2) + " more)";
+        }
+        
+        byte[] mergedPdfBytes = mergePdfs(pdfBytesList);
+        
+        PdfFile pdf = new PdfFile();
+        pdf.setUserId(userId);
+        pdf.setCustomerName(resolveCustomerName(userId, customerName));
+        pdf.setBlockLocation(normalizeBlockLocation(blockLocation));
+        pdf.setCopies(1);
+        pdf.setSelectedPages("ALL");
+        
+        Long lastId = repository.getLastId() + 1;
+        String orderId = "ORD2026" + String.format("%04d", lastId);
+        pdf.setOrderId(orderId);
+        pdf.setUploadTime(LocalDateTime.now());
+        pdf.setFileName(combinedName);
+        pdf.setFileType("application/pdf");
+        pdf.setFileSize((long) mergedPdfBytes.length);
+        pdf.setPdfData(mergedPdfBytes);
+        
+        try (PDDocument document = Loader.loadPDF(mergedPdfBytes)) {
+            pdf.setTotalPages(document.getNumberOfPages());
+        }
+        
+        pdf.setStatus("ORDER_CREATED");
+        pdf.setPaymentStatus("UNPAID");
+        
+        return repository.save(pdf);
+    }
+
+    private byte[] mergePdfs(java.util.List<byte[]> pdfBytesList) throws IOException {
+        PDFMergerUtility merger = new PDFMergerUtility();
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            merger.setDestinationStream(baos);
+            for (byte[] bytes : pdfBytesList) {
+                merger.addSource(new org.apache.pdfbox.io.RandomAccessReadBuffer(bytes));
+            }
+            merger.mergeDocuments(null);
+            return baos.toByteArray();
+        }
     }
 }
