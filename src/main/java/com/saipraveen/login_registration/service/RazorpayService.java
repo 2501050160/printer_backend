@@ -24,7 +24,8 @@ public class RazorpayService {
     private String keySecret;
 
     public Map<String, Object> createOrder(
-            Double amount
+            Double amount,
+            String appOrderId
     ) throws Exception {
 
         RazorpayClient client =
@@ -51,6 +52,10 @@ public class RazorpayService {
                 "receipt_" +
                         System.currentTimeMillis()
         );
+
+        JSONObject notes = new JSONObject();
+        notes.put("app_order_id", appOrderId);
+        options.put("notes", notes);
         try {
 
             Order order =

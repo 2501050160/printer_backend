@@ -283,6 +283,16 @@ public PdfFile updatePaymentStatus(
             pdf
     );
 }
+    // Update payment status using order ID (used by Razorpay webhook)
+    public PdfFile updatePaymentStatusByOrderId(String orderId, String paymentStatus) {
+        PdfFile pdf = repository.findByOrderId(orderId);
+        if (pdf == null) {
+            throw new RuntimeException("Order Not Found");
+        }
+        pdf.setPaymentStatus(paymentStatus);
+        return repository.save(pdf);
+    }
+
 
 public List<PdfFile> getAllOrders() {
 
