@@ -62,6 +62,8 @@ private String printType;
 
     private String appliedReferralCode;
 
+    private String printProgress;
+
     @Column(columnDefinition = "bytea")
     @com.fasterxml.jackson.annotation.JsonIgnore
     private byte[] pdfData;
@@ -287,5 +289,13 @@ public void setTotalPages(Integer totalPages) {
 
     public void setOtpCode(String otpCode) {
         this.otpCode = otpCode;
+    }
+
+    public String getPrintProgress() {
+        return printProgress;
+    }
+
+    public void setPrintProgress(String printProgress) {
+        this.printProgress = printProgress;
     }
 }

@@ -1,6 +1,7 @@
 package com.saipraveen.login_registration.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "rewards")
@@ -24,6 +25,7 @@ public class Reward {
     private Boolean active = true;
     private Integer maxClaims = 100;
     private Integer claimedCount = 0;
+    private LocalDate expiryDate;
 
     public Reward() {}
 
@@ -99,5 +101,13 @@ public class Reward {
 
     public void setClaimedCount(Integer claimedCount) {
         this.claimedCount = claimedCount;
+    }
+
+    public LocalDate getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(LocalDate expiryDate) {
+        this.expiryDate = expiryDate;
     }
 }

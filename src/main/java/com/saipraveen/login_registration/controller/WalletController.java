@@ -12,6 +12,7 @@ import com.saipraveen.login_registration.service.UserService;
 
 @RestController
 @RequestMapping("/api/wallet")
+@CrossOrigin(origins = "http://localhost:5173")
 public class WalletController {
 
     @Autowired
@@ -24,6 +25,15 @@ public class WalletController {
 
         return ResponseEntity.ok(
                 userService.getWalletBalance(userId)
+        );
+    }
+
+    @GetMapping("/transactions")
+    public ResponseEntity<?> getTransactions(
+            @RequestParam Long userId
+    ) {
+        return ResponseEntity.ok(
+                userService.getTransactions(userId)
         );
     }
 }

@@ -37,4 +37,29 @@ public class EmailService {
             System.err.println("Failed to send email to " + toEmail + ": " + e.getMessage());
         }
     }
+
+    public void sendEmail(String toEmail, String subject, String body) {
+        System.out.println("==================================================");
+        System.out.println("EMAIL TO: " + toEmail);
+        System.out.println("SUBJECT: " + subject);
+        System.out.println("BODY: " + body);
+        System.out.println("==================================================");
+        
+        if (mailSender == null || mailUsername == null || mailUsername.trim().isEmpty()) {
+            System.out.println("SMTP Mail Sender is empty. Skipping email delivery (console fallback only).");
+            return;
+        }
+        
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailUsername);
+            message.setTo(toEmail);
+            message.setSubject(subject);
+            message.setText(body);
+            mailSender.send(message);
+            System.out.println("Email sent successfully to: " + toEmail);
+        } catch (Exception e) {
+            System.err.println("Failed to send email to " + toEmail + ": " + e.getMessage());
+        }
+    }
 }

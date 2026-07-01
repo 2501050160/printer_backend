@@ -305,4 +305,22 @@ public ResponseEntity<?> cancelWindow(
                 service.releasePrintJob(orderId, otp)
         );
     }
+
+    @GetMapping("/receipt/{orderId}")
+    public ResponseEntity<byte[]> getReceipt(
+            @PathVariable String orderId
+    ) {
+        try {
+            byte[] receiptPdf = service.generateReceiptPdf(orderId);
+            if (receiptPdf == null) {
+                return ResponseEntity.notFound().build();
+            }
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "receipt_" + orderId + ".pdf");
+            return new ResponseEntity<>(receiptPdf, headers, HttpStatus.OK);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }

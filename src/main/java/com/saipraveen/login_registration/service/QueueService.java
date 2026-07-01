@@ -26,6 +26,12 @@ public class QueueService {
     @Autowired
     private PrinterConfigService printerConfigService;
 
+    @Autowired
+    private SseService sseService;
+
+    @Autowired
+    private EmailService emailService;
+
     @Value("${print.cancel-window-seconds:30}")
     private int cancelWindowSeconds;
 
@@ -43,7 +49,10 @@ public class QueueService {
 
         for (PdfFile pdf : expired) {
             pdf.setStatus("PENDING_SCAN");
+            pdf.setPrintProgress("Waiting for QR Scan verification");
             repository.save(pdf);
+            sseService.sendProgress(pdf.getUserId(), pdf.getOrderId(), "PENDING_SCAN", "Waiting for QR Scan verification");
+            sseService.sendQueueUpdate(pdf.getUserId());
             System.out.println("Order held in PENDING_SCAN for OTP verification: " + pdf.getOrderId());
         }
     }
@@ -141,8 +150,11 @@ public class QueueService {
 
         pdf.setStatus("PRINTING");
         pdf.setPrintingStartedAt(LocalDateTime.now());
-
-        return repository.save(pdf);
+        pdf.setPrintProgress("Converting to print layout...");
+        PdfFile saved = repository.save(pdf);
+        sseService.sendProgress(pdf.getUserId(), pdf.getOrderId(), "PRINTING", "Converting to print layout...");
+        sseService.sendQueueUpdate(pdf.getUserId());
+        return saved;
     }
 
     @Transactional
@@ -170,6 +182,7 @@ public class QueueService {
         pdf.setStatus("COMPLETED");
         pdf.setFinishedAt(LocalDateTime.now());
         pdf.setPdfData(null); // Delete the PDF binary file data immediately after printing is completed
+        pdf.setPrintProgress("Ready for pickup! 📄");
 
         try {
             int pages = (pdf.getTotalPages() != null ? pdf.getTotalPages() : 1) * (pdf.getCopies() != null ? pdf.getCopies() : 1);
@@ -178,7 +191,10 @@ public class QueueService {
             System.err.println("Failed to decrement paper count for block: " + pdf.getBlockLocation() + " - " + e.getMessage());
         }
 
-        return repository.save(pdf);
+        PdfFile saved = repository.save(pdf);
+        sseService.sendProgress(pdf.getUserId(), pdf.getOrderId(), "COMPLETED", "Ready for pickup! 📄");
+        sseService.sendQueueUpdate(pdf.getUserId());
+        return saved;
     }
 
     @Transactional
@@ -235,7 +251,9 @@ public class QueueService {
         if (pdf.getUserId() != null && refundAmount > 0) {
             userService.creditWallet(
                     pdf.getUserId(),
-                    refundAmount
+                    refundAmount,
+                    "REFUND",
+                    "Refund for cancelled order: " + pdf.getOrderId()
             );
         }
 
@@ -243,8 +261,11 @@ public class QueueService {
         pdf.setPaymentStatus("REFUNDED");
         pdf.setFinishedAt(LocalDateTime.now());
         pdf.setPdfData(null);
+        pdf.setPrintProgress("Cancelled");
 
         repository.save(pdf);
+        sseService.sendProgress(pdf.getUserId(), pdf.getOrderId(), "CANCELLED", "Cancelled");
+        sseService.sendQueueUpdate(pdf.getUserId());
 
         result.put("success", true);
         result.put("message", "Order cancelled. Amount credited to wallet.");
@@ -263,10 +284,14 @@ public class QueueService {
         );
         pdf.setPaymentStatus("PAID");
         pdf.setStatus("CANCEL_WINDOW");
+        pdf.setPrintProgress("Cancel window active");
 
         // Generate random 4-digit OTP
         int randomOtp = 1000 + new java.util.Random().nextInt(9000);
         pdf.setOtpCode(String.valueOf(randomOtp));
+
+        sseService.sendProgress(pdf.getUserId(), pdf.getOrderId(), "CANCEL_WINDOW", "Cancel window active");
+        sseService.sendQueueUpdate(pdf.getUserId());
 
         if (pdf.getOriginalPrice() == null && pdf.getPrice() != null) {
             pdf.setOriginalPrice(pdf.getPrice());
@@ -285,7 +310,9 @@ public class QueueService {
                 if (userService.userExists(pdf.getUserId())) {
                     userService.creditWallet(
                             pdf.getUserId(),
-                            refundAmount
+                            refundAmount,
+                            "REFUND",
+                            "Auto-refund: " + reason
                     );
                 } else {
                     System.err.println("Could not refund order " + pdf.getOrderId() + " because user " + pdf.getUserId() + " does not exist.");
@@ -299,8 +326,11 @@ public class QueueService {
         pdf.setPaymentStatus("REFUNDED");
         pdf.setFinishedAt(LocalDateTime.now());
         pdf.setPdfData(null);
+        pdf.setPrintProgress("Cancelled: " + reason);
 
         repository.save(pdf);
+        sseService.sendProgress(pdf.getUserId(), pdf.getOrderId(), "CANCELLED", "Cancelled: " + reason);
+        sseService.sendQueueUpdate(pdf.getUserId());
     }
 
     public int getCancelWindowSeconds() {
@@ -319,6 +349,47 @@ public class QueueService {
     }
 
     private static final java.util.Map<String, LocalDateTime> agentHeartbeats = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<String, Boolean> blockOnlineState = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @Scheduled(fixedRate = 30000)
+    public void monitorPrinterConnectivity() {
+        try {
+            List<com.saipraveen.login_registration.entity.PrinterConfig> printers = printerConfigService.getAllPrinters();
+            if (printers == null) return;
+            for (com.saipraveen.login_registration.entity.PrinterConfig printer : printers) {
+                String block = printer.getBlockLocation();
+                boolean isOnline = isAgentOnline(block);
+                Boolean previousState = blockOnlineState.get(block);
+
+                if (previousState == null) {
+                    blockOnlineState.put(block, isOnline);
+                    continue;
+                }
+
+                if (previousState && !isOnline) {
+                    blockOnlineState.put(block, false);
+                    emailService.sendEmail(
+                        "saipraveendasari2@gmail.com",
+                        "CRITICAL ALERT: Printer at " + block + " Went Offline",
+                        "Technician Alert:\n\nThe cloud print agent for printer block " + block + 
+                        " has stopped responding to heartbeats and is now OFFLINE.\n\n" +
+                        "Last Heartbeat: " + agentHeartbeats.get(block) + "\n\n" +
+                        "Please verify the print agent service and local network connection at that block."
+                    );
+                } else if (!previousState && isOnline) {
+                    blockOnlineState.put(block, true);
+                    emailService.sendEmail(
+                        "saipraveendasari2@gmail.com",
+                        "RESOLVED: Printer at " + block + " is Back Online",
+                        "Technician Update:\n\nThe cloud print agent for printer block " + block + 
+                        " has successfully reconnected to the server and is now ONLINE."
+                    );
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error running monitorPrinterConnectivity: " + e.getMessage());
+        }
+    }
 
     public void recordHeartbeat(String blockLocation) {
         if (blockLocation != null) {
@@ -337,5 +408,64 @@ public class QueueService {
             return false;
         }
         return lastHeartbeat.isAfter(LocalDateTime.now().minusSeconds(15));
+    }
+
+    @Transactional
+    public PdfFile updateProgress(String orderId, String progressMessage) {
+        PdfFile pdf = repository.findByOrderId(orderId);
+        if (pdf == null) {
+            throw new RuntimeException("Order not found");
+        }
+        pdf.setPrintProgress(progressMessage);
+        PdfFile saved = repository.save(pdf);
+        sseService.sendProgress(pdf.getUserId(), pdf.getOrderId(), pdf.getStatus(), progressMessage);
+        return saved;
+    }
+
+    public Map<String, Object> getQueueEstimate(String orderId) {
+        PdfFile targetPdf = repository.findByOrderId(orderId);
+        Map<String, Object> response = new HashMap<>();
+        if (targetPdf == null) {
+            response.put("error", "Order not found");
+            return response;
+        }
+
+        String block = targetPdf.getBlockLocation();
+        List<PdfFile> activeQueue = repository.findActiveQueueByBlock(block);
+
+        int position = 0;
+        int totalPagesAhead = 0;
+        boolean found = false;
+
+        for (int i = 0; i < activeQueue.size(); i++) {
+            PdfFile pdf = activeQueue.get(i);
+            if (pdf.getOrderId().equals(orderId)) {
+                position = i + 1;
+                found = true;
+                break;
+            }
+            int pages = (pdf.getTotalPages() != null ? pdf.getTotalPages() : 1) * (pdf.getCopies() != null ? pdf.getCopies() : 1);
+            totalPagesAhead += pages;
+        }
+
+        if (!found) {
+            position = activeQueue.size() + 1;
+            for (PdfFile pdf : activeQueue) {
+                int pages = (pdf.getTotalPages() != null ? pdf.getTotalPages() : 1) * (pdf.getCopies() != null ? pdf.getCopies() : 1);
+                totalPagesAhead += pages;
+            }
+        }
+
+        double pagePrintTime = 3.0; // 3 seconds per page
+        double transferBuffer = 10.0; // 10 seconds transfer buffer per order
+        
+        double estimatedWaitTime = (totalPagesAhead * pagePrintTime) + (position * transferBuffer);
+
+        response.put("orderId", orderId);
+        response.put("queuePosition", position);
+        response.put("totalPagesAhead", totalPagesAhead);
+        response.put("estimatedWaitTimeSeconds", estimatedWaitTime);
+        response.put("estimatedWaitTimeMinutes", Math.ceil(estimatedWaitTime / 60.0 * 10.0) / 10.0);
+        return response;
     }
 }

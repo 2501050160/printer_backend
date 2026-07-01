@@ -4,20 +4,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.saipraveen.login_registration.entity.PdfFile;
 import com.saipraveen.login_registration.service.QueueService;
+import com.saipraveen.login_registration.service.SseService;
 
 @RestController
 @RequestMapping("/api/queue")
+@CrossOrigin(origins = "http://localhost:5173")
 public class QueueController {
 
     @Autowired
     private QueueService queueService;
+
+    @Autowired
+    private SseService sseService;
 
     @GetMapping("/pending")
     public ResponseEntity<?> getPending(
@@ -92,6 +99,32 @@ public class QueueController {
 
         return ResponseEntity.ok(
                 queueService.cancelOrder(orderId, userId)
+        );
+    }
+
+    @GetMapping("/stream/{userId}")
+    public SseEmitter streamUpdates(
+            @PathVariable Long userId
+    ) {
+        return sseService.register(userId);
+    }
+
+    @PostMapping("/updateProgress")
+    public ResponseEntity<?> updateProgress(
+            @RequestParam String orderId,
+            @RequestParam String progressMessage
+    ) {
+        return ResponseEntity.ok(
+                queueService.updateProgress(orderId, progressMessage)
+        );
+    }
+
+    @GetMapping("/estimate")
+    public ResponseEntity<?> getEstimate(
+            @RequestParam String orderId
+    ) {
+        return ResponseEntity.ok(
+                queueService.getQueueEstimate(orderId)
         );
     }
 }

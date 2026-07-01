@@ -85,6 +85,12 @@ public class RewardController {
             return ResponseEntity.badRequest().body(response);
         }
 
+        if (reward.getExpiryDate() != null && java.time.LocalDate.now().isAfter(reward.getExpiryDate())) {
+            response.put("success", false);
+            response.put("message", "This reward voucher has expired");
+            return ResponseEntity.badRequest().body(response);
+        }
+
         if (reward.getClaimedCount() >= reward.getMaxClaims()) {
             response.put("success", false);
             response.put("message", "This reward claim limit has been reached");
@@ -99,7 +105,7 @@ public class RewardController {
         }
 
         // Process claim (credit wallet balance)
-        userService.creditWallet(userId, reward.getRewardAmount());
+        userService.creditWallet(userId, reward.getRewardAmount(), "REWARD", "Redeemed claim code: " + reward.getClaimCode());
         
         // Record claim
         claimRepository.save(new UserRewardClaim(userId, reward.getId(), LocalDateTime.now()));
@@ -130,5 +136,55 @@ public class RewardController {
             return ResponseEntity.ok("Reward deleted successfully");
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/generate-batch")
+    public ResponseEntity<?> generateVoucherBatch(
+            @RequestParam String prefix,
+            @RequestParam Double amount,
+            @RequestParam Integer count,
+            @RequestParam Integer maxClaims,
+            @RequestParam(required = false) String expiryDate
+    ) {
+        java.time.LocalDate localExpiryDate = null;
+        if (expiryDate != null && !expiryDate.trim().isEmpty()) {
+            try {
+                localExpiryDate = java.time.LocalDate.parse(expiryDate.trim());
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body("Invalid expiry date format. Expected YYYY-MM-DD.");
+            }
+        }
+
+        java.util.List<Reward> createdVouchers = new java.util.ArrayList<>();
+        java.util.Random random = new java.util.Random();
+        String upperPrefix = prefix.trim().toUpperCase();
+
+        for (int i = 0; i < count; i++) {
+            String claimCode;
+            Reward existing;
+            do {
+                StringBuilder randomPart = new StringBuilder();
+                String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                for (int k = 0; k < 5; k++) {
+                    randomPart.append(chars.charAt(random.nextInt(chars.length())));
+                }
+                claimCode = upperPrefix + "-" + randomPart.toString();
+                existing = rewardRepository.findByClaimCode(claimCode);
+            } while (existing != null);
+
+            Reward reward = new Reward();
+            reward.setTitle("Voucher " + claimCode);
+            reward.setDescription("Reward voucher worth Rs. " + amount);
+            reward.setRewardAmount(amount);
+            reward.setClaimCode(claimCode);
+            reward.setMaxClaims(maxClaims);
+            reward.setClaimedCount(0);
+            reward.setActive(true);
+            reward.setExpiryDate(localExpiryDate);
+
+            createdVouchers.add(rewardRepository.save(reward));
+        }
+
+        return ResponseEntity.ok(createdVouchers);
     }
 }

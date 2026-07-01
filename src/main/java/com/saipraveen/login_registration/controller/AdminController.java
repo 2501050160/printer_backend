@@ -147,4 +147,39 @@ public class AdminController {
         }
         return ResponseEntity.ok("Settings updated successfully");
     }
+
+    @org.springframework.web.bind.annotation.GetMapping("/analytics")
+    public ResponseEntity<?> getAnalytics() {
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        
+        // 1. Daily print volume trends (for last 7 days)
+        String dailyVolumeSql = "SELECT CAST(upload_time AS date) as date, COUNT(*) as count, COALESCE(SUM(total_pages),0) as pages " +
+                "FROM pdf_files WHERE status='COMPLETED' AND upload_time >= CURRENT_DATE - INTERVAL '7 days' " +
+                "GROUP BY CAST(upload_time AS date) ORDER BY date";
+        try {
+            data.put("dailyVolume", jdbcTemplate.queryForList(dailyVolumeSql));
+        } catch (Exception e) {
+            data.put("dailyVolume", java.util.Collections.emptyList());
+        }
+
+        // 2. Revenue breakdowns by campus block
+        String blockRevenueSql = "SELECT block_location as block, COALESCE(SUM(price), 0) as revenue, COUNT(*) as count " +
+                "FROM pdf_files WHERE payment_status='PAID' AND status != 'CANCELLED' GROUP BY block_location";
+        try {
+            data.put("blockRevenue", jdbcTemplate.queryForList(blockRevenueSql));
+        } catch (Exception e) {
+            data.put("blockRevenue", java.util.Collections.emptyList());
+        }
+
+        // 3. Color vs BW print ratio
+        String printTypeRatioSql = "SELECT COALESCE(print_type, 'BW') as print_type, COUNT(*) as count, COALESCE(SUM(total_pages), 0) as pages " +
+                "FROM pdf_files WHERE payment_status='PAID' AND status != 'CANCELLED' GROUP BY print_type";
+        try {
+            data.put("printTypeRatio", jdbcTemplate.queryForList(printTypeRatioSql));
+        } catch (Exception e) {
+            data.put("printTypeRatio", java.util.Collections.emptyList());
+        }
+
+        return ResponseEntity.ok(data);
+    }
 }

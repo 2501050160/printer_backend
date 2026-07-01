@@ -41,6 +41,9 @@ private QueueService queueService;
 private UserService userService;
 
 @Autowired
+private SseService sseService;
+
+@Autowired
 private PdfFileRepository repository;
 
     @Autowired
@@ -200,24 +203,7 @@ public PdfFile updateOrder(
             )
     );
 
-    int pages = 1;
-
-    if ("ALL".equals(selectedPages) || selectedPages == null || selectedPages.trim().isEmpty()) {
-        pages = pdf.getTotalPages() != null ? pdf.getTotalPages() : 1;
-    } else {
-        try {
-            String[] range = selectedPages.split("-");
-            if (range.length == 2) {
-                pages = Integer.parseInt(range[1].trim())
-                        - Integer.parseInt(range[0].trim())
-                        + 1;
-            } else if (range.length == 1) {
-                pages = 1;
-            }
-        } catch (Exception e) {
-            pages = 1;
-        }
-    }
+    int pages = calculateSelectedPageCount(selectedPages, pdf.getTotalPages() != null ? pdf.getTotalPages() : 1);
 
     Double rate = pricingService.getPrice(printType, pdf.getBlockLocation());
     if (rate == null || rate == 0.0) {
@@ -463,7 +449,7 @@ public PdfFile payWithWallet(String orderId) {
     Double price =
             pdf.getPrice() == null ? 0.0 : pdf.getPrice();
 
-    userService.debitWallet(pdf.getUserId(), price);
+    userService.debitWallet(pdf.getUserId(), price, "PAYMENT", "Payment for order: " + pdf.getOrderId());
 
     pdf.setRazorpayPaymentId("WALLET");
 
@@ -806,9 +792,9 @@ private void addPageRange(
                     double refereeAmt = systemSettingService.getSettingDouble("referral_referee_amount", 5.0);
 
                     // Credit referrer
-                    userService.creditWallet(referrer.getId(), referrerAmt);
+                    userService.creditWallet(referrer.getId(), referrerAmt, "REWARD", "Referral reward for referring order " + pdf.getOrderId());
                     // Credit referee (current order user)
-                    userService.creditWallet(pdf.getUserId(), refereeAmt);
+                    userService.creditWallet(pdf.getUserId(), refereeAmt, "REWARD", "Referral signup bonus");
                     System.out.println("Applied referral code: " + refCode + ". Referrer " + referrer.getId() + " credited " + referrerAmt + ", referee " + pdf.getUserId() + " credited " + refereeAmt + ".");
                 }
             } catch (Exception e) {
@@ -920,11 +906,142 @@ private void addPageRange(
         if (!"PENDING_SCAN".equals(pdf.getStatus())) {
             throw new RuntimeException("Order is not in PENDING_SCAN state");
         }
-        if (pdf.getOtpCode() == null || !pdf.getOtpCode().equals(otp)) {
-            throw new RuntimeException("Invalid OTP Code");
-        }
+        
+        // OTP check is bypassed for seamless Scan-to-Print QR release
         pdf.setStatus("QUEUE");
         pdf.setQueuedAt(LocalDateTime.now());
-        return repository.save(pdf);
+        pdf.setPrintProgress("Queued for printing");
+        PdfFile saved = repository.save(pdf);
+        
+        sseService.sendProgress(pdf.getUserId(), pdf.getOrderId(), "QUEUE", "Queued for printing");
+        sseService.sendQueueUpdate(pdf.getUserId());
+        
+        return saved;
+    }
+
+    public byte[] generateReceiptPdf(String orderId) throws IOException {
+        PdfFile pdf = repository.findByOrderId(orderId);
+        if (pdf == null) {
+            return null;
+        }
+
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+
+            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+                // Draw header
+                contentStream.beginText();
+                contentStream.setFont(new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_BOLD), 20);
+                contentStream.newLineAtOffset(50, 750);
+                contentStream.showText("CAMPUS IOT PRINT HUB");
+                contentStream.endText();
+
+                contentStream.beginText();
+                contentStream.setFont(new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA), 10);
+                contentStream.newLineAtOffset(50, 730);
+                contentStream.showText("Official Print Receipt & Invoice");
+                contentStream.endText();
+
+                // Draw horizontal line
+                contentStream.setLineWidth(1f);
+                contentStream.moveTo(50, 715);
+                contentStream.lineTo(550, 715);
+                contentStream.stroke();
+
+                // Details
+                int y = 680;
+                contentStream.beginText();
+                contentStream.setFont(new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_BOLD), 12);
+                contentStream.newLineAtOffset(50, y);
+                contentStream.showText("Invoice Details:");
+                contentStream.endText();
+
+                y -= 20;
+                String[][] details = {
+                    {"Order ID:", pdf.getOrderId()},
+                    {"Date:", pdf.getUploadTime() != null ? pdf.getUploadTime().toString().substring(0, 10) : "N/A"},
+                    {"Customer Name:", pdf.getCustomerName() != null ? pdf.getCustomerName() : "Customer"},
+                    {"Location Block:", pdf.getBlockLocation()},
+                    {"Document Name:", pdf.getFileName()},
+                    {"Print Type:", pdf.getPrintType() != null ? pdf.getPrintType() : "BW"},
+                    {"Pages Printed:", pdf.getSelectedPages()},
+                    {"Total Pages:", pdf.getTotalPages() != null ? String.valueOf(pdf.getTotalPages()) : "1"},
+                    {"Copies:", pdf.getCopies() != null ? String.valueOf(pdf.getCopies()) : "1"},
+                    {"Payment Method:", pdf.getRazorpayPaymentId() != null ? pdf.getRazorpayPaymentId() : "UNPAID"},
+                    {"Amount Paid:", "Rs. " + (pdf.getPrice() != null ? String.valueOf(pdf.getPrice()) : "0.0")}
+                };
+
+                for (String[] detail : details) {
+                    contentStream.beginText();
+                    contentStream.setFont(new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_BOLD), 10);
+                    contentStream.newLineAtOffset(50, y);
+                    contentStream.showText(detail[0]);
+                    contentStream.endText();
+
+                    contentStream.beginText();
+                    contentStream.setFont(new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA), 10);
+                    contentStream.newLineAtOffset(200, y);
+                    String value = detail[1] != null ? detail[1] : "";
+                    // Replace special characters to avoid PDFBox rendering errors
+                    value = value.replaceAll("[^\\x20-\\x7E]", "");
+                    if (value.length() > 50) {
+                        value = value.substring(0, 47) + "...";
+                    }
+                    contentStream.showText(value);
+                    contentStream.endText();
+
+                    y -= 20;
+                }
+
+                // Draw signature/footer
+                contentStream.setLineWidth(0.5f);
+                contentStream.moveTo(50, 150);
+                contentStream.lineTo(550, 150);
+                contentStream.stroke();
+
+                contentStream.beginText();
+                contentStream.setFont(new org.apache.pdfbox.pdmodel.font.PDType1Font(org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_OBLIQUE), 9);
+                contentStream.newLineAtOffset(50, 130);
+                contentStream.showText("This is an electronically generated document. No signature required.");
+                contentStream.endText();
+            }
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            document.save(baos);
+            return baos.toByteArray();
+        }
+    }
+
+    public static int calculateSelectedPageCount(String selectedPages, int totalPages) {
+        if ("ALL".equalsIgnoreCase(selectedPages) || selectedPages == null || selectedPages.trim().isEmpty()) {
+            return totalPages;
+        }
+        int count = 0;
+        String[] parts = selectedPages.split(",");
+        for (String part : parts) {
+            String pagePart = part.trim();
+            if (pagePart.isEmpty()) continue;
+            if (pagePart.contains("-")) {
+                String[] range = pagePart.split("-");
+                if (range.length == 2) {
+                    try {
+                        int start = Integer.parseInt(range[0].trim());
+                        int end = Integer.parseInt(range[1].trim());
+                        count += Math.max(0, end - start + 1);
+                    } catch (NumberFormatException e) {
+                        count += 1;
+                    }
+                }
+            } else {
+                try {
+                    Integer.parseInt(pagePart);
+                    count += 1;
+                } catch (NumberFormatException e) {
+                    // ignore
+                }
+            }
+        }
+        return count > 0 ? count : 1;
     }
 }

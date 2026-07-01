@@ -16,6 +16,7 @@ import com.saipraveen.login_registration.service.PrinterConfigService;
 
 @RestController
 @RequestMapping("/api/printer")
+@CrossOrigin(origins = "http://localhost:5173")
 public class PrinterConfigController {
 
     @Autowired
@@ -83,5 +84,13 @@ public ResponseEntity<?> savePrinter(
         service.updatePaperCount(blockLocation, paperCount);
         return ResponseEntity.ok("Paper count updated successfully");
     }
- 
+
+    @GetMapping("/suggestions")
+    public ResponseEntity<?> getSuggestions(
+            @RequestParam String currentBlock
+    ) {
+        return ResponseEntity.ok(
+                service.getFallbackSuggestions(currentBlock)
+        );
+    }
 }

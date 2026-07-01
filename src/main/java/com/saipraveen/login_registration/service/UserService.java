@@ -3,15 +3,21 @@ package com.saipraveen.login_registration.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 
 import com.saipraveen.login_registration.entity.User;
+import com.saipraveen.login_registration.entity.WalletTransaction;
 import com.saipraveen.login_registration.repository.UserRepository;
+import com.saipraveen.login_registration.repository.WalletTransactionRepository;
 
 @Service
 public class UserService {
 
     @Autowired
     private UserRepository repository;
+
+    @Autowired
+    private WalletTransactionRepository walletTransactionRepository;
 
     @Autowired
     private EmailService emailService;
@@ -163,38 +169,39 @@ public class UserService {
 
     @Transactional
     public User creditWallet(Long userId, Double amount) {
+        return creditWallet(userId, amount, "REWARD", "Wallet credited");
+    }
 
+    @Transactional
+    public User creditWallet(Long userId, Double amount, String type, String description) {
         User user = getUserById(userId);
-
-        double current =
-                user.getWalletBalance() == null
-                        ? 0.0
-                        : user.getWalletBalance();
-
+        double current = user.getWalletBalance() == null ? 0.0 : user.getWalletBalance();
         user.setWalletBalance(current + amount);
-
-        return repository.save(user);
+        User saved = repository.save(user);
+        
+        WalletTransaction tx = new WalletTransaction(userId, amount, type, description, LocalDateTime.now());
+        walletTransactionRepository.save(tx);
+        return saved;
     }
 
     @Transactional
     public User debitWallet(Long userId, Double amount) {
+        return debitWallet(userId, amount, "PAYMENT", "Wallet debited");
+    }
 
+    @Transactional
+    public User debitWallet(Long userId, Double amount, String type, String description) {
         User user = getUserById(userId);
-
-        double current =
-                user.getWalletBalance() == null
-                        ? 0.0
-                        : user.getWalletBalance();
-
+        double current = user.getWalletBalance() == null ? 0.0 : user.getWalletBalance();
         if (current < amount) {
-            throw new RuntimeException(
-                    "Insufficient wallet balance"
-            );
+            throw new RuntimeException("Insufficient wallet balance");
         }
-
         user.setWalletBalance(current - amount);
+        User saved = repository.save(user);
 
-        return repository.save(user);
+        WalletTransaction tx = new WalletTransaction(userId, -amount, type, description, LocalDateTime.now());
+        walletTransactionRepository.save(tx);
+        return saved;
     }
 
     public java.util.List<User> getAllUsers() {
@@ -217,5 +224,9 @@ public class UserService {
     @Transactional
     public void deleteUser(Long id) {
         repository.deleteById(id);
+    }
+
+    public java.util.List<WalletTransaction> getTransactions(Long userId) {
+        return walletTransactionRepository.findByUserIdOrderByTimestampDesc(userId);
     }
 }
