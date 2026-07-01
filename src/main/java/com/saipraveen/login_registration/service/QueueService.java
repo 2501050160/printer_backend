@@ -95,6 +95,21 @@ public class QueueService {
                             + " minutes)"
             );
         }
+
+        // 10-Minute PENDING_SCAN verification timeout
+        LocalDateTime scanCutoff = LocalDateTime.now().minusMinutes(10);
+        List<PdfFile> scanTimedOut = repository.findExpiredPendingScanOrders(scanCutoff);
+        for (PdfFile pdf : scanTimedOut) {
+            refundAndCancel(
+                    pdf,
+                    "QR/OTP Scan verification timeout (10 minutes)"
+            );
+
+            System.out.println(
+                    "Order scan verification timed out, refunded and deleted file data: "
+                            + pdf.getOrderId()
+            );
+        }
     }
 
     public List<PdfFile> getQueueByBlock(String blockLocation) {
@@ -266,6 +281,10 @@ public class QueueService {
         );
         pdf.setPaymentStatus("PAID");
         pdf.setStatus("CANCEL_WINDOW");
+
+        // Generate random 6-digit OTP
+        int randomOtp = 100000 + new java.util.Random().nextInt(900000);
+        pdf.setOtpCode(String.valueOf(randomOtp));
 
         if (pdf.getOriginalPrice() == null && pdf.getPrice() != null) {
             pdf.setOriginalPrice(pdf.getPrice());

@@ -58,6 +58,8 @@ private String printType;
 
     private Integer totalPages;
 
+    private String otpCode;
+
     private String appliedReferralCode;
 
     @Column(columnDefinition = "bytea")
@@ -277,5 +279,13 @@ public void setTotalPages(Integer totalPages) {
 
     public void setAppliedReferralCode(String appliedReferralCode) {
         this.appliedReferralCode = appliedReferralCode;
+    }
+
+    public String getOtpCode() {
+        return otpCode;
+    }
+
+    public void setOtpCode(String otpCode) {
+        this.otpCode = otpCode;
     }
 }

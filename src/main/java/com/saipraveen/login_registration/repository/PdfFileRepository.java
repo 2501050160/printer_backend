@@ -98,6 +98,13 @@ List<PdfFile> findActiveQueueByBlock(
 );
 
 @Query(
+    "SELECT p FROM PdfFile p WHERE p.status = 'PENDING_SCAN' AND p.cancelWindowEndsAt <= :cutoff"
+)
+List<PdfFile> findExpiredPendingScanOrders(
+        @Param("cutoff") LocalDateTime cutoff
+);
+
+@Query(
     "SELECT p FROM PdfFile p WHERE p.paymentStatus='PAID' AND p.status='QUEUE' ORDER BY p.id ASC"
 )
 List<PdfFile> findAllQueuedOrders();
