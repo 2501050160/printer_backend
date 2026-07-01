@@ -46,12 +46,16 @@ public class SystemStatusController {
         boolean dbConnected = checkDbConnection();
         boolean agentOnline = queueService.isAgentOnline(blockLocation);
         boolean printerConfigured = false;
+        boolean maintenance = false;
         
         try {
             PrinterConfig config = printerService.getPrinterByBlock(blockLocation);
             if (config != null && Boolean.TRUE.equals(config.getActive()) 
                     && config.getPrinterName() != null && !config.getPrinterName().trim().isEmpty()) {
                 printerConfigured = true;
+            }
+            if (config != null && Boolean.TRUE.equals(config.getMaintenance())) {
+                maintenance = true;
             }
         } catch (Exception e) {
             System.err.println("Failed to look up printer config: " + e.getMessage());
@@ -60,6 +64,7 @@ public class SystemStatusController {
         status.put("databaseConnected", dbConnected);
         status.put("agentOnline", agentOnline);
         status.put("printerConfigured", printerConfigured);
+        status.put("maintenance", maintenance);
         
         return ResponseEntity.ok(status);
     }

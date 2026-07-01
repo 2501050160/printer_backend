@@ -17,7 +17,14 @@ public class PrinterConfigService {
     public PrinterConfig savePrinter(
             PrinterConfig printer
     ) {
-
+        PrinterConfig existing = repository.findByBlockLocation(printer.getBlockLocation());
+        if (existing != null) {
+            existing.setPrinterName(printer.getPrinterName());
+            existing.setPrinterIp(printer.getPrinterIp());
+            existing.setActive(printer.getActive());
+            existing.setMaintenance(printer.getMaintenance());
+            return repository.save(existing);
+        }
         return repository.save(
                 printer
         );
