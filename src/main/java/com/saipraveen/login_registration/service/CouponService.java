@@ -102,11 +102,24 @@ public class CouponService {
         );
     }
 
-public void deleteCoupon(
-        Long id) {
+    public void deleteCoupon(
+            Long id) {
 
-    repository.deleteById(id);
-}
+        repository.deleteById(id);
+    }
 
-
-}
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 30000)
+    @org.springframework.transaction.annotation.Transactional
+    public void autoDeleteInvalidCoupons() {
+        List<Coupon> allCoupons = repository.findAll();
+        LocalDate today = LocalDate.now();
+        for (Coupon coupon : allCoupons) {
+            boolean expired = coupon.getExpiryDate() != null && coupon.getExpiryDate().isBefore(today);
+            boolean fullyUsed = coupon.getUsedCount() != null && coupon.getMaxUses() != null && coupon.getUsedCount() >= coupon.getMaxUses();
+            if (expired || fullyUsed) {
+                repository.delete(coupon);
+                System.out.println("Auto-deleted invalid coupon: " + coupon.getCouponCode() + " (Reason: " + (expired ? "Expired" : "Fully Used") + ")");
+            }
+        }
+    }
+}
