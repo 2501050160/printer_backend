@@ -152,8 +152,7 @@ public class QueueService {
             throw new RuntimeException("Order not found");
         }
         if ("CANCEL_WINDOW".equals(pdf.getStatus())) {
-            pdf.setStatus("QUEUE");
-            pdf.setQueuedAt(LocalDateTime.now());
+            pdf.setStatus("PENDING_SCAN");
             return repository.save(pdf);
         }
         return pdf;
