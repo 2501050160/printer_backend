@@ -42,26 +42,9 @@ public class QueueService {
                 );
 
         for (PdfFile pdf : expired) {
-            boolean qrRequired = false;
-            try {
-                com.saipraveen.login_registration.entity.PrinterConfig config = printerConfigService.getPrinterByBlock(pdf.getBlockLocation());
-                if (config != null && Boolean.TRUE.equals(config.getQrScanToPrint())) {
-                    qrRequired = true;
-                }
-            } catch (Exception e) {
-                System.err.println("Failed to lookup qrScanToPrint setting: " + e.getMessage());
-            }
-
-            if (qrRequired) {
-                pdf.setStatus("PENDING_SCAN");
-                repository.save(pdf);
-                System.out.println("Order held for QR scanning: " + pdf.getOrderId());
-            } else {
-                pdf.setStatus("QUEUE");
-                pdf.setQueuedAt(LocalDateTime.now());
-                repository.save(pdf);
-                System.out.println("Order promoted to queue: " + pdf.getOrderId());
-            }
+            pdf.setStatus("PENDING_SCAN");
+            repository.save(pdf);
+            System.out.println("Order held in PENDING_SCAN for OTP verification: " + pdf.getOrderId());
         }
     }
 
