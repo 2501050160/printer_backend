@@ -906,4 +906,22 @@ private void addPageRange(
             return baos.toByteArray();
         }
     }
+
+    public List<PdfFile> getPendingScanOrders(Long userId, String blockLocation) {
+        return repository.findByUserIdAndBlockLocationAndStatus(userId, blockLocation, "PENDING_SCAN");
+    }
+
+    @Transactional
+    public PdfFile releasePrintJob(String orderId) {
+        PdfFile pdf = repository.findByOrderId(orderId);
+        if (pdf == null) {
+            throw new RuntimeException("Order Not Found");
+        }
+        if (!"PENDING_SCAN".equals(pdf.getStatus())) {
+            throw new RuntimeException("Order is not in PENDING_SCAN state");
+        }
+        pdf.setStatus("QUEUE");
+        pdf.setQueuedAt(LocalDateTime.now());
+        return repository.save(pdf);
+    }
 }

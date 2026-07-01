@@ -42,16 +42,26 @@ public class QueueService {
                 );
 
         for (PdfFile pdf : expired) {
+            boolean qrRequired = false;
+            try {
+                com.saipraveen.login_registration.entity.PrinterConfig config = printerConfigService.getPrinterByBlock(pdf.getBlockLocation());
+                if (config != null && Boolean.TRUE.equals(config.getQrScanToPrint())) {
+                    qrRequired = true;
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to lookup qrScanToPrint setting: " + e.getMessage());
+            }
 
-            pdf.setStatus("QUEUE");
-            pdf.setQueuedAt(LocalDateTime.now());
-
-            repository.save(pdf);
-
-            System.out.println(
-                    "Order promoted to queue: "
-                            + pdf.getOrderId()
-            );
+            if (qrRequired) {
+                pdf.setStatus("PENDING_SCAN");
+                repository.save(pdf);
+                System.out.println("Order held for QR scanning: " + pdf.getOrderId());
+            } else {
+                pdf.setStatus("QUEUE");
+                pdf.setQueuedAt(LocalDateTime.now());
+                repository.save(pdf);
+                System.out.println("Order promoted to queue: " + pdf.getOrderId());
+            }
         }
     }
 
@@ -192,20 +202,23 @@ public class QueueService {
             return result;
         }
 
-        if (!"CANCEL_WINDOW".equals(pdf.getStatus())) {
+        boolean isCancelable = "CANCEL_WINDOW".equals(pdf.getStatus()) || "PENDING_SCAN".equals(pdf.getStatus());
+
+        if (!isCancelable) {
             result.put("success", false);
-            result.put("message", "Cancel window has expired");
+            result.put("message", "Order cannot be cancelled at this stage");
             return result;
         }
 
-        if (pdf.getCancelWindowEndsAt() != null
-                && LocalDateTime.now().isAfter(
-                        pdf.getCancelWindowEndsAt()
-                )) {
-
-            result.put("success", false);
-            result.put("message", "Cancel window has expired");
-            return result;
+        if ("CANCEL_WINDOW".equals(pdf.getStatus())) {
+            if (pdf.getCancelWindowEndsAt() != null
+                    && LocalDateTime.now().isAfter(
+                            pdf.getCancelWindowEndsAt()
+                    )) {
+                result.put("success", false);
+                result.put("message", "Cancel window has expired");
+                return result;
+            }
         }
 
         if (userId != null

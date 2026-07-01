@@ -27,6 +27,8 @@ public class PrinterConfig {
 
     private Integer paperCount = 500;
 
+    private Boolean qrScanToPrint = false;
+
     public PrinterConfig() {
     }
 
@@ -84,5 +86,13 @@ public class PrinterConfig {
 
     public void setPaperCount(Integer paperCount) {
         this.paperCount = paperCount;
+    }
+
+    public Boolean getQrScanToPrint() {
+        return qrScanToPrint != null ? qrScanToPrint : false;
+    }
+
+    public void setQrScanToPrint(Boolean qrScanToPrint) {
+        this.qrScanToPrint = qrScanToPrint;
     }
 }

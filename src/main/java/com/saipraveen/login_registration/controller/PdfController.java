@@ -285,4 +285,23 @@ public ResponseEntity<?> cancelWindow(
                 service.applyReferral(orderId, referralCode, userId)
         );
     }
+
+    @GetMapping("/pendingScan")
+    public ResponseEntity<?> getPendingScan(
+            @RequestParam Long userId,
+            @RequestParam String blockLocation
+    ) {
+        return ResponseEntity.ok(
+                service.getPendingScanOrders(userId, blockLocation)
+        );
+    }
+
+    @PostMapping("/releasePrint")
+    public ResponseEntity<?> releasePrint(
+            @RequestParam String orderId
+    ) {
+        return ResponseEntity.ok(
+                service.releasePrintJob(orderId)
+        );
+    }
 }

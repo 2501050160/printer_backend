@@ -61,9 +61,15 @@ Long getPrintingOrders();
 Long getCompletedOrders();
 
 
-List<PdfFile> findByUserId(
-        Long userId
-);
+    List<PdfFile> findByUserId(
+            Long userId
+    );
+
+    List<PdfFile> findByUserIdAndBlockLocationAndStatus(
+            Long userId,
+            String blockLocation,
+            String status
+    );
 
 @Query(
     "SELECT COUNT(p) FROM PdfFile p WHERE p.status='QUEUE'"

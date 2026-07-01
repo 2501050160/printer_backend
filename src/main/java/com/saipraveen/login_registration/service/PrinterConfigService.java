@@ -23,6 +23,7 @@ public class PrinterConfigService {
             existing.setPrinterIp(printer.getPrinterIp());
             existing.setActive(printer.getActive());
             existing.setMaintenance(printer.getMaintenance());
+            existing.setQrScanToPrint(printer.getQrScanToPrint());
             return repository.save(existing);
         }
         return repository.save(
