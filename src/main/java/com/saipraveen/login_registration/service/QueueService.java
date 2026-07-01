@@ -265,8 +265,8 @@ public class QueueService {
         pdf.setPaymentStatus("PAID");
         pdf.setStatus("CANCEL_WINDOW");
 
-        // Generate random 6-digit OTP
-        int randomOtp = 100000 + new java.util.Random().nextInt(900000);
+        // Generate random 4-digit OTP
+        int randomOtp = 1000 + new java.util.Random().nextInt(9000);
         pdf.setOtpCode(String.valueOf(randomOtp));
 
         if (pdf.getOriginalPrice() == null && pdf.getPrice() != null) {
