@@ -298,10 +298,11 @@ public ResponseEntity<?> cancelWindow(
 
     @PostMapping("/releasePrint")
     public ResponseEntity<?> releasePrint(
-            @RequestParam String orderId
+            @RequestParam String orderId,
+            @RequestParam String otp
     ) {
         return ResponseEntity.ok(
-                service.releasePrintJob(orderId)
+                service.releasePrintJob(orderId, otp)
         );
     }
 }

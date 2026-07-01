@@ -912,13 +912,16 @@ private void addPageRange(
     }
 
     @Transactional
-    public PdfFile releasePrintJob(String orderId) {
+    public PdfFile releasePrintJob(String orderId, String otp) {
         PdfFile pdf = repository.findByOrderId(orderId);
         if (pdf == null) {
             throw new RuntimeException("Order Not Found");
         }
         if (!"PENDING_SCAN".equals(pdf.getStatus())) {
             throw new RuntimeException("Order is not in PENDING_SCAN state");
+        }
+        if (pdf.getOtpCode() == null || !pdf.getOtpCode().equals(otp)) {
+            throw new RuntimeException("Invalid OTP Code");
         }
         pdf.setStatus("QUEUE");
         pdf.setQueuedAt(LocalDateTime.now());
