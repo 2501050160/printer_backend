@@ -58,6 +58,9 @@ private PdfFileRepository repository;
     @Autowired
     private ScratchCardService scratchCardService;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @jakarta.annotation.PostConstruct
     public void initSystemSettings() {
         initSetting("referral_enabled", "true");
@@ -67,7 +70,8 @@ private PdfFileRepository repository;
         initSetting("referral_popup_message", "Welcome! Share your referral code with friends. They get Rs. 5 and you get Rs. 10 on their first checkout!");
         initSetting("ad_enabled", "true");
         initSetting("ad_text", "📢 REFERRAL SPECIAL: Refer your friends using your unique Referral Code shown below and earn ₹10 instantly when they checkout! They get ₹5 off on their first order!");
-        initSetting("scratch_card_max_percent", "10.0");
+        initSetting("scratch_card_min_reward", "1.0");
+        initSetting("scratch_card_max_reward", "10.0");
     }
 
     private void initSetting(String key, String defaultValue) {
@@ -310,11 +314,25 @@ public Map<String,Object> getDashboardStats(String period) {
         netRevenue = repository.getNetRevenueSince(start);
     }
 
+    // Calculate returned reward (refunds) from wallet transaction history
+    Double returnReward = 0.0;
+    try {
+        returnReward = jdbcTemplate.queryForObject(
+            "SELECT COALESCE(SUM(amount), 0.0) FROM wallet_transactions WHERE type = 'REWARD' AND (description LIKE '%Refund%' OR description LIKE '%Cancel%' OR description LIKE '%refund%' OR description LIKE '%cancel%')",
+            Double.class
+        );
+    } catch (Exception e) {
+        // fallback to 0 if table does not exist or empty
+    }
+
     stats.put("period", period);
     stats.put("grossRevenue", grossRevenue == null ? 0.0 : grossRevenue);
     stats.put("totalDiscounts", totalDiscounts == null ? 0.0 : totalDiscounts);
+    stats.put("couponDiscountAmount", totalDiscounts == null ? 0.0 : totalDiscounts);
     stats.put("netRevenue", netRevenue == null ? 0.0 : netRevenue);
     stats.put("totalRevenue", netRevenue == null ? 0.0 : netRevenue);
+    stats.put("returnReward", returnReward == null ? 0.0 : returnReward);
+    stats.put("totalProjectedIncome", grossRevenue == null ? 0.0 : grossRevenue);
 
     stats.put(
             "todayRevenue",

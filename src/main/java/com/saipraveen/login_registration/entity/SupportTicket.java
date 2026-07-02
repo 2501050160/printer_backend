@@ -25,7 +25,37 @@ public class SupportTicket {
 
     private String status = "PENDING"; // PENDING, RESOLVED
 
+    private Long userId;
+
+    private String adminResponse;
+
+    private boolean userNotified = false;
+
     public SupportTicket() {
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public String getAdminResponse() {
+        return adminResponse;
+    }
+
+    public void setAdminResponse(String adminResponse) {
+        this.adminResponse = adminResponse;
+    }
+
+    public boolean isUserNotified() {
+        return userNotified;
+    }
+
+    public void setUserNotified(boolean userNotified) {
+        this.userNotified = userNotified;
     }
 
     public Long getId() {

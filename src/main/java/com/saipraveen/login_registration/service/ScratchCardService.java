@@ -21,21 +21,27 @@ public class ScratchCardService {
     private UserService userService;
 
     public ScratchCard createScratchCard(Long userId, String orderId, Double transactionAmount) {
-        double maxPercent = systemSettingService.getSettingDouble("scratch_card_max_percent", 10.0);
-        double maxWin = transactionAmount * (maxPercent / 100.0);
-        
-        // Generate random win amount up to maxWin, rounded to 2 decimal places
-        double winAmount = 0.0;
-        if (maxWin > 0.1) {
-            winAmount = 0.1 + (maxWin - 0.1) * new Random().nextDouble();
-            winAmount = Math.round(winAmount * 100.0) / 100.0;
+        double minReward = systemSettingService.getSettingDouble("scratch_card_min_reward", 1.0);
+        double maxReward = systemSettingService.getSettingDouble("scratch_card_max_reward", 10.0);
+
+        if (minReward > maxReward) {
+            double temp = minReward;
+            minReward = maxReward;
+            maxReward = temp;
         }
+
+        // Generate random win amount between minReward and maxReward
+        double winAmount = minReward;
+        if (maxReward > minReward) {
+            winAmount = minReward + (maxReward - minReward) * new Random().nextDouble();
+        }
+        winAmount = Math.round(winAmount * 100.0) / 100.0;
 
         ScratchCard card = new ScratchCard();
         card.setUserId(userId);
         card.setOrderId(orderId);
         card.setTransactionAmount(transactionAmount);
-        card.setMaxWinAmount(Math.round(maxWin * 100.0) / 100.0);
+        card.setMaxWinAmount(maxReward);
         card.setWinAmount(winAmount);
         card.setScratched(false);
         

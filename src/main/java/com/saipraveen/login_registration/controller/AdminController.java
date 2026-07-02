@@ -70,6 +70,21 @@ public class AdminController {
         return ResponseEntity.ok("User deleted");
     }
 
+    @PostMapping("/users/reward")
+    public ResponseEntity<?> rewardUser(
+            @org.springframework.web.bind.annotation.RequestParam Long id,
+            @org.springframework.web.bind.annotation.RequestParam Double amount,
+            @org.springframework.web.bind.annotation.RequestParam String reason
+    ) {
+        try {
+            String desc = (reason == null || reason.trim().isEmpty()) ? "Gifted by Admin" : reason.trim();
+            com.saipraveen.login_registration.entity.User user = userService.creditWallet(id, amount, "REWARD", desc);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PostMapping("/reset-stats")
     public ResponseEntity<?> resetStats() {
         pdfFileService.resetAllStats();
@@ -113,6 +128,8 @@ public class AdminController {
         settings.put("adText", systemSettingService.getSetting("ad_text", ""));
         settings.put("generalPopupEnabled", systemSettingService.getSettingBool("general_popup_enabled", false));
         settings.put("generalPopupMessage", systemSettingService.getSetting("general_popup_message", ""));
+        settings.put("scratchCardMinReward", systemSettingService.getSettingDouble("scratch_card_min_reward", 1.0));
+        settings.put("scratchCardMaxReward", systemSettingService.getSettingDouble("scratch_card_max_reward", 10.0));
         return ResponseEntity.ok(settings);
     }
 
@@ -144,6 +161,12 @@ public class AdminController {
         }
         if (request.containsKey("generalPopupMessage")) {
             systemSettingService.setSetting("general_popup_message", String.valueOf(request.get("generalPopupMessage")));
+        }
+        if (request.containsKey("scratchCardMinReward")) {
+            systemSettingService.setSetting("scratch_card_min_reward", String.valueOf(request.get("scratchCardMinReward")));
+        }
+        if (request.containsKey("scratchCardMaxReward")) {
+            systemSettingService.setSetting("scratch_card_max_reward", String.valueOf(request.get("scratchCardMaxReward")));
         }
         return ResponseEntity.ok("Settings updated successfully");
     }

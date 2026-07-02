@@ -31,6 +31,37 @@ public class SupportTicketController {
         return ResponseEntity.ok(saved);
     }
 
+    @GetMapping("/user")
+    public ResponseEntity<?> getUserTickets(@RequestParam Long userId) {
+        return ResponseEntity.ok(repository.findByUserId(userId));
+    }
+
+    @PostMapping("/respond")
+    public ResponseEntity<?> respondToTicket(
+            @RequestParam Long id,
+            @RequestParam String response
+    ) {
+        return repository.findById(id).map(ticket -> {
+            ticket.setAdminResponse(response);
+            ticket.setUserNotified(false); // user has unseen update
+            ticket.setStatus("RESOLVED");
+            repository.save(ticket);
+            return ResponseEntity.ok(ticket);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/mark-notified")
+    public ResponseEntity<?> markNotified(@RequestParam Long userId) {
+        java.util.List<SupportTicket> tickets = repository.findByUserId(userId);
+        for (SupportTicket t : tickets) {
+            if (t.getAdminResponse() != null && !t.isUserNotified()) {
+                t.setUserNotified(true);
+                repository.save(t);
+            }
+        }
+        return ResponseEntity.ok("Marked all as read");
+    }
+
     @GetMapping("/all")
     public ResponseEntity<?> getAllTickets() {
         return ResponseEntity.ok(repository.findAll());

@@ -4,4 +4,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.saipraveen.login_registration.entity.SupportTicket;
 
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
+    java.util.List<SupportTicket> findByUserId(Long userId);
 }
