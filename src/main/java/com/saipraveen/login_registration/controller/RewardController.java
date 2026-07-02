@@ -187,4 +187,21 @@ public class RewardController {
 
         return ResponseEntity.ok(createdVouchers);
     }
+
+    @Autowired
+    private com.saipraveen.login_registration.service.ScratchCardService scratchCardService;
+
+    @GetMapping("/scratch-cards")
+    public ResponseEntity<?> getUserScratchCards(@RequestParam Long userId) {
+        return ResponseEntity.ok(scratchCardService.getUserCards(userId));
+    }
+
+    @PostMapping("/scratch-cards/scratch")
+    public ResponseEntity<?> scratchCard(@RequestParam Long id, @RequestParam Long userId) {
+        try {
+            return ResponseEntity.ok(scratchCardService.scratchCard(id, userId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

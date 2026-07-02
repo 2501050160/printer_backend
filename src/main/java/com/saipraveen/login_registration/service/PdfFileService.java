@@ -55,6 +55,9 @@ private PdfFileRepository repository;
     @Autowired
     private SystemSettingService systemSettingService;
 
+    @Autowired
+    private ScratchCardService scratchCardService;
+
     @jakarta.annotation.PostConstruct
     public void initSystemSettings() {
         initSetting("referral_enabled", "true");
@@ -64,6 +67,7 @@ private PdfFileRepository repository;
         initSetting("referral_popup_message", "Welcome! Share your referral code with friends. They get Rs. 5 and you get Rs. 10 on their first checkout!");
         initSetting("ad_enabled", "true");
         initSetting("ad_text", "📢 REFERRAL SPECIAL: Refer your friends using your unique Referral Code shown below and earn ₹10 instantly when they checkout! They get ₹5 off on their first order!");
+        initSetting("scratch_card_max_percent", "10.0");
     }
 
     private void initSetting(String key, String defaultValue) {
@@ -428,6 +432,12 @@ public PdfFile markAsPaid(
 
     processReferralRewards(pdf);
 
+    try {
+        scratchCardService.createScratchCard(pdf.getUserId(), pdf.getOrderId(), pdf.getPrice());
+    } catch (Exception e) {
+        System.err.println("Failed to create scratch card for order " + pdf.getOrderId() + ": " + e.getMessage());
+    }
+
     queueService.beginCancelWindow(pdf);
 
     return repository.save(pdf);
@@ -454,6 +464,12 @@ public PdfFile payWithWallet(String orderId) {
     pdf.setRazorpayPaymentId("WALLET");
 
     processReferralRewards(pdf);
+
+    try {
+        scratchCardService.createScratchCard(pdf.getUserId(), pdf.getOrderId(), pdf.getPrice());
+    } catch (Exception e) {
+        System.err.println("Failed to create scratch card for order " + pdf.getOrderId() + ": " + e.getMessage());
+    }
 
     queueService.beginCancelWindow(pdf);
 
