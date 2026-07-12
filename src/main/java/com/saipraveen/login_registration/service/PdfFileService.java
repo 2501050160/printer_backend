@@ -526,6 +526,8 @@ public Map<String, Object> getCancelWindowInfo(String orderId) {
     info.put("found", true);
     info.put("orderId", pdf.getOrderId());
     info.put("status", pdf.getStatus());
+    info.put("otpCode", pdf.getOtpCode());
+    info.put("fileName", pdf.getFileName());
     info.put("cancelWindowEndsAt", pdf.getCancelWindowEndsAt());
     info.put("cancelWindowSeconds", queueService.getCancelWindowSeconds());
 
