@@ -42,9 +42,23 @@ public class QueueService {
                 );
 
         for (PdfFile pdf : expired) {
-            pdf.setStatus("PENDING_SCAN");
-            repository.save(pdf);
-            System.out.println("Order held in PENDING_SCAN for OTP verification: " + pdf.getOrderId());
+            com.saipraveen.login_registration.entity.PrinterConfig config = null;
+            try {
+                config = printerConfigService.getPrinterByBlock(pdf.getBlockLocation());
+            } catch (Exception e) {
+                System.err.println("Failed to fetch printer config: " + e.getMessage());
+            }
+
+            if (config != null && Boolean.FALSE.equals(config.getOtpEnabled())) {
+                pdf.setStatus("QUEUE");
+                pdf.setQueuedAt(LocalDateTime.now());
+                repository.save(pdf);
+                System.out.println("Order promoted directly to QUEUE (OTP disabled for block): " + pdf.getOrderId());
+            } else {
+                pdf.setStatus("PENDING_SCAN");
+                repository.save(pdf);
+                System.out.println("Order held in PENDING_SCAN for OTP verification: " + pdf.getOrderId());
+            }
         }
     }
 
@@ -152,7 +166,19 @@ public class QueueService {
             throw new RuntimeException("Order not found");
         }
         if ("CANCEL_WINDOW".equals(pdf.getStatus())) {
-            pdf.setStatus("PENDING_SCAN");
+            com.saipraveen.login_registration.entity.PrinterConfig config = null;
+            try {
+                config = printerConfigService.getPrinterByBlock(pdf.getBlockLocation());
+            } catch (Exception e) {
+                System.err.println("Failed to fetch printer config: " + e.getMessage());
+            }
+
+            if (config != null && Boolean.FALSE.equals(config.getOtpEnabled())) {
+                pdf.setStatus("QUEUE");
+                pdf.setQueuedAt(LocalDateTime.now());
+            } else {
+                pdf.setStatus("PENDING_SCAN");
+            }
             return repository.save(pdf);
         }
         return pdf;

@@ -29,6 +29,8 @@ public class PrinterConfig {
 
     private Boolean qrScanToPrint = false;
 
+    private Boolean otpEnabled = true;
+
     public PrinterConfig() {
     }
 
@@ -94,5 +96,13 @@ public class PrinterConfig {
 
     public void setQrScanToPrint(Boolean qrScanToPrint) {
         this.qrScanToPrint = qrScanToPrint;
+    }
+
+    public Boolean getOtpEnabled() {
+        return otpEnabled != null ? otpEnabled : true;
+    }
+
+    public void setOtpEnabled(Boolean otpEnabled) {
+        this.otpEnabled = otpEnabled;
     }
 }
