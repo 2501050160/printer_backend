@@ -18,6 +18,14 @@ public class User {
 
     private String name;
 
+    private String username;
+
+    private String studentId;
+
+    private String department;
+
+    private String year;
+
     @Column(unique = true)
     private String email;
 
@@ -117,5 +125,37 @@ public class User {
 
     public void setOtpExpiry(java.time.LocalDateTime otpExpiry) {
         this.otpExpiry = otpExpiry;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getStudentId() {
+        return studentId;
+    }
+
+    public void setStudentId(String studentId) {
+        this.studentId = studentId;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public String getYear() {
+        return year;
+    }
+
+    public void setYear(String year) {
+        this.year = year;
     }
 }
