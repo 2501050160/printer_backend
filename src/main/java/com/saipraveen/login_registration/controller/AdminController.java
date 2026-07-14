@@ -113,6 +113,8 @@ public class AdminController {
         settings.put("adText", systemSettingService.getSetting("ad_text", ""));
         settings.put("generalPopupEnabled", systemSettingService.getSettingBool("general_popup_enabled", false));
         settings.put("generalPopupMessage", systemSettingService.getSetting("general_popup_message", ""));
+        settings.put("thesisDiscountPages", systemSettingService.getSettingDouble("thesis_discount_pages", 50.0));
+        settings.put("thesisDiscountPercent", systemSettingService.getSettingDouble("thesis_discount_percent", 15.0));
         return ResponseEntity.ok(settings);
     }
 
@@ -145,6 +147,17 @@ public class AdminController {
         if (request.containsKey("generalPopupMessage")) {
             systemSettingService.setSetting("general_popup_message", String.valueOf(request.get("generalPopupMessage")));
         }
+        if (request.containsKey("thesisDiscountPages")) {
+            systemSettingService.setSetting("thesis_discount_pages", String.valueOf(request.get("thesisDiscountPages")));
+        }
+        if (request.containsKey("thesisDiscountPercent")) {
+            systemSettingService.setSetting("thesis_discount_percent", String.valueOf(request.get("thesisDiscountPercent")));
+        }
         return ResponseEntity.ok("Settings updated successfully");
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/printers/status")
+    public ResponseEntity<?> getPrintersStatus() {
+        return ResponseEntity.ok(pdfFileService.getPrinterLiveStatusList());
     }
 }

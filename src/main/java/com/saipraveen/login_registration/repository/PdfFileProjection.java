@@ -27,4 +27,5 @@ public interface PdfFileProjection {
     Double getOriginalPrice();
     Double getDiscountAmount();
     LocalDateTime getScheduledTime();
+    String getNupLayout();
 }

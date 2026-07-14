@@ -64,6 +64,8 @@ private String printType;
 
     private java.time.LocalDateTime scheduledTime;
 
+    private String nupLayout = "1-up";
+
     @Column(columnDefinition = "bytea")
     @com.fasterxml.jackson.annotation.JsonIgnore
     private byte[] pdfData;
@@ -297,5 +299,13 @@ public void setTotalPages(Integer totalPages) {
 
     public void setScheduledTime(java.time.LocalDateTime scheduledTime) {
         this.scheduledTime = scheduledTime;
+    }
+
+    public String getNupLayout() {
+        return nupLayout == null ? "1-up" : nupLayout;
+    }
+
+    public void setNupLayout(String nupLayout) {
+        this.nupLayout = nupLayout;
     }
 }

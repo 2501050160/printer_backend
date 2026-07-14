@@ -52,6 +52,9 @@ private PdfFileRepository repository;
     @Autowired
     private SystemSettingService systemSettingService;
 
+    @Autowired
+    private PrinterConfigService printerConfigService;
+
     @jakarta.annotation.PostConstruct
     public void initSystemSettings() {
         initSetting("referral_enabled", "true");
@@ -182,7 +185,8 @@ public PdfFile updateOrder(
         Integer copies,
         String selectedPages,
         String printType,
-        String blockLocation) {
+        String blockLocation,
+        String nupLayout) {
 
     PdfFile pdf =
             repository.findByOrderId(orderId);
@@ -200,6 +204,7 @@ public PdfFile updateOrder(
                     blockLocation
             )
     );
+    pdf.setNupLayout(nupLayout);
 
     int pages = 1;
 
@@ -220,19 +225,40 @@ public PdfFile updateOrder(
         }
     }
 
+    int actualSheets = pages;
+    if ("2-up".equals(nupLayout)) {
+        actualSheets = (int) Math.ceil(pages / 2.0);
+    } else if ("4-up".equals(nupLayout)) {
+        actualSheets = (int) Math.ceil(pages / 4.0);
+    }
+
     Double rate = pricingService.getPrice(printType, pdf.getBlockLocation());
     if (rate == null || rate == 0.0) {
         rate = printType.equals("COLOR") ? 5.0 : 2.0;
     }
 
-    double price =
-            pages *
-            copies *
-            rate;
+    double basePrice = actualSheets * copies * rate;
 
-    pdf.setPrice(price);
-    pdf.setOriginalPrice(price);
-    pdf.setDiscountAmount(0.0);
+    // 1. Off-peak Dynamic Discount (15%)
+    int hour = java.time.LocalDateTime.now().getHour();
+    boolean isOffPeak = (hour >= 7 && hour < 9) || (hour >= 21 || hour < 7);
+    double dynamicDiscountPercent = isOffPeak ? 15.0 : 0.0;
+
+    // 2. Thesis/Bulk print discount
+    double thesisDiscountPercent = systemSettingService.getSettingDouble("thesis_discount_percent", 15.0);
+    double thesisDiscountPages = systemSettingService.getSettingDouble("thesis_discount_pages", 50.0);
+    double thesisDiscount = 0.0;
+    if (pages >= (int) thesisDiscountPages) {
+        thesisDiscount = thesisDiscountPercent;
+    }
+
+    double totalDiscountPercent = dynamicDiscountPercent + thesisDiscount;
+    double discountAmount = basePrice * (totalDiscountPercent / 100.0);
+    double finalPrice = Math.max(0.0, basePrice - discountAmount);
+
+    pdf.setOriginalPrice(basePrice);
+    pdf.setDiscountAmount(discountAmount);
+    pdf.setPrice(finalPrice);
 
     return repository.save(pdf);
 }
@@ -962,5 +988,56 @@ private void addPageRange(
 
     public com.saipraveen.login_registration.repository.PdfFileProjection getOrderDetails(String orderId) {
         return repository.findProjectionByOrderId(orderId);
+    }
+
+    public Map<String, Object> getReferralStats(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        Map<String, Object> stats = new HashMap<>();
+        if (user != null) {
+            long totalReferrals = repository.countByAppliedReferralCodeAndPaymentStatus(user.getReferralCode(), "PAID");
+            double referrerAmt = systemSettingService.getSettingDouble("referral_referrer_amount", 10.0);
+            stats.put("referralCode", user.getReferralCode());
+            stats.put("totalReferrals", totalReferrals);
+            stats.put("cashbackEarned", totalReferrals * referrerAmt);
+            stats.put("walletBalance", user.getWalletBalance());
+        }
+        return stats;
+    }
+
+    public List<Map<String, Object>> getReferralLeaderboardList() {
+        List<Object[]> queryResult = repository.getReferralLeaderboard();
+        List<Map<String, Object>> leaderboard = new java.util.ArrayList<>();
+        for (Object[] row : queryResult) {
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("name", row[0]);
+            entry.put("count", row[1]);
+            leaderboard.add(entry);
+        }
+        return leaderboard;
+    }
+
+    public List<Map<String, Object>> getPrinterLiveStatusList() {
+        List<com.saipraveen.login_registration.entity.PrinterConfig> printers = printerConfigService.getAllPrinters();
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (com.saipraveen.login_registration.entity.PrinterConfig printer : printers) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", printer.getId());
+            map.put("blockLocation", printer.getBlockLocation());
+            map.put("printerName", printer.getPrinterName());
+            map.put("printerIp", printer.getPrinterIp());
+            map.put("active", printer.getActive());
+            map.put("maintenance", printer.getMaintenance());
+            map.put("paperCount", printer.getPaperCount());
+            map.put("online", queueService.isAgentOnline(printer.getBlockLocation()));
+            
+            long activeJobs = repository.countByBlockLocationAndStatusIn(
+                printer.getBlockLocation(), 
+                java.util.Arrays.asList("QUEUE", "PRINTING")
+            );
+            map.put("queueLoad", activeJobs);
+            
+            result.add(map);
+        }
+        return result;
     }
 }

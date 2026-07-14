@@ -33,27 +33,21 @@ private QueueService queueService;
 
 @PostMapping("/updateOrder")
 public ResponseEntity<?> updateOrder(
-
         @RequestParam String orderId,
-
         @RequestParam Integer copies,
-
         @RequestParam String selectedPages,
-        
         @RequestParam String printType,
-
-        @RequestParam(required = false)
-        String blockLocation
+        @RequestParam(required = false) String blockLocation,
+        @RequestParam(required = false, defaultValue = "1-up") String nupLayout
 ) {
-
     return ResponseEntity.ok(
-
             service.updateOrder(
                     orderId,
                     copies,
                     selectedPages,
                     printType,
-                    blockLocation
+                    blockLocation,
+                    nupLayout
             )
     );
 }
@@ -327,5 +321,15 @@ public ResponseEntity<?> cancelWindow(
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(pdf);
+    }
+
+    @GetMapping("/referrals/stats")
+    public ResponseEntity<?> getReferralStats(@RequestParam Long userId) {
+        return ResponseEntity.ok(service.getReferralStats(userId));
+    }
+
+    @GetMapping("/referrals/leaderboard")
+    public ResponseEntity<?> getReferralLeaderboard() {
+        return ResponseEntity.ok(service.getReferralLeaderboardList());
     }
 }

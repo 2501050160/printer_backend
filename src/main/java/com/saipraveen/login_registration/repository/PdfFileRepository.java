@@ -208,4 +208,14 @@ int clearPdfDataForFinishedOrders();
             @Param("status") String status,
             @Param("cancelWindowEndsAt") LocalDateTime cancelWindowEndsAt
     );
+
+    @Query("SELECT u.name, COUNT(DISTINCT p.userId) FROM PdfFile p, User u " +
+           "WHERE p.appliedReferralCode = u.referralCode AND p.appliedReferralCode IS NOT NULL AND p.paymentStatus = 'PAID' " +
+           "GROUP BY u.name " +
+           "ORDER BY COUNT(DISTINCT p.userId) DESC")
+    List<Object[]> getReferralLeaderboard();
+
+    long countByAppliedReferralCodeAndPaymentStatus(String referralCode, String paymentStatus);
+
+    long countByBlockLocationAndStatusIn(String blockLocation, List<String> statuses);
 }
