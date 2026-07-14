@@ -47,15 +47,19 @@ public class SystemStatusController {
         boolean agentOnline = queueService.isAgentOnline(blockLocation);
         boolean printerConfigured = false;
         boolean maintenance = false;
+        boolean active = false;
+        boolean paused = false;
         
         try {
             PrinterConfig config = printerService.getPrinterByBlock(blockLocation);
-            if (config != null && Boolean.TRUE.equals(config.getActive()) 
-                    && config.getPrinterName() != null && !config.getPrinterName().trim().isEmpty()) {
-                printerConfigured = true;
-            }
-            if (config != null && Boolean.TRUE.equals(config.getMaintenance())) {
-                maintenance = true;
+            if (config != null) {
+                active = Boolean.TRUE.equals(config.getActive());
+                paused = Boolean.TRUE.equals(config.getPaused());
+                maintenance = Boolean.TRUE.equals(config.getMaintenance());
+                
+                if (active && !paused && config.getPrinterName() != null && !config.getPrinterName().trim().isEmpty()) {
+                    printerConfigured = true;
+                }
             }
         } catch (Exception e) {
             System.err.println("Failed to look up printer config: " + e.getMessage());
@@ -65,6 +69,8 @@ public class SystemStatusController {
         status.put("agentOnline", agentOnline);
         status.put("printerConfigured", printerConfigured);
         status.put("maintenance", maintenance);
+        status.put("active", active);
+        status.put("paused", paused);
         
         return ResponseEntity.ok(status);
     }

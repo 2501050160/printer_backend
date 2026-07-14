@@ -18,13 +18,27 @@ public class PrinterConfigService {
     public PrinterConfig savePrinter(
             PrinterConfig printer
     ) {
-        PrinterConfig existing = repository.findByBlockLocation(printer.getBlockLocation());
+        PrinterConfig existing = null;
+        if (printer.getId() != null) {
+            existing = repository.findById(printer.getId()).orElse(null);
+        }
+        if (existing == null) {
+            existing = repository.findByBlockLocation(printer.getBlockLocation());
+        }
+
         if (existing != null) {
+            existing.setBlockLocation(printer.getBlockLocation());
             existing.setPrinterName(printer.getPrinterName());
             existing.setPrinterIp(printer.getPrinterIp());
             existing.setActive(printer.getActive());
             existing.setMaintenance(printer.getMaintenance());
             existing.setQrScanToPrint(printer.getQrScanToPrint());
+            existing.setOtpEnabled(printer.getOtpEnabled());
+            existing.setColourSupported(printer.getColourSupported());
+            existing.setPaused(printer.getPaused());
+            if (printer.getPaperCount() != null) {
+                existing.setPaperCount(printer.getPaperCount());
+            }
             return repository.save(existing);
         }
         return repository.save(

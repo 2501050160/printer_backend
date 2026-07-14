@@ -116,4 +116,14 @@ public class PrinterConfig {
     public void setColourSupported(Boolean colourSupported) {
         this.colourSupported = colourSupported;
     }
+
+    private Boolean paused = false;
+
+    public Boolean getPaused() {
+        return paused != null ? paused : false;
+    }
+
+    public void setPaused(Boolean paused) {
+        this.paused = paused;
+    }
 }
