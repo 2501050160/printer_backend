@@ -126,9 +126,25 @@ public class RewardController {
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteReward(@RequestParam Long id) {
         if (rewardRepository.existsById(id)) {
+            claimRepository.deleteByRewardId(id);
             rewardRepository.deleteById(id);
             return ResponseEntity.ok("Reward deleted successfully");
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 30000)
+    @org.springframework.transaction.annotation.Transactional
+    public void autoDeleteInvalidRewards() {
+        List<Reward> allRewards = rewardRepository.findAll();
+        for (Reward reward : allRewards) {
+            boolean fullyClaimed = reward.getClaimedCount() != null && reward.getMaxClaims() != null && reward.getClaimedCount() >= reward.getMaxClaims();
+            boolean inactive = Boolean.FALSE.equals(reward.getActive());
+            if (fullyClaimed || inactive) {
+                claimRepository.deleteByRewardId(reward.getId());
+                rewardRepository.delete(reward);
+                System.out.println("Auto-deleted invalid reward: " + reward.getClaimCode() + " (Reason: " + (fullyClaimed ? "Fully Claimed" : "Inactive") + ")");
+            }
+        }
     }
 }

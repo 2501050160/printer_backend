@@ -26,7 +26,7 @@ public class UserService {
         if (user.getReferralCode() == null || user.getReferralCode().trim().isEmpty()) {
             String code;
             do {
-                code = "REF-" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+                code = String.valueOf(100000 + new java.util.Random().nextInt(900000));
             } while (repository.findByReferralCode(code) != null);
             user.setReferralCode(code);
         }
