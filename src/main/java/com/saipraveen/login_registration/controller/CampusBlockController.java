@@ -23,6 +23,11 @@ public class CampusBlockController {
     @Autowired
     private CampusBlockService campusBlockService;
 
+    @GetMapping("/all")
+    public List<CampusBlock> getAllBlocks() {
+        return repository.findAll();
+    }
+
     @PutMapping("/rename/{id}")
     public ResponseEntity<?> renameBlock(@PathVariable Long id, @RequestParam String newName) {
         try {
