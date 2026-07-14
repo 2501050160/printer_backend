@@ -99,14 +99,4 @@ public class QueueController {
                 queueService.cancelOrder(orderId, userId)
         );
     }
-
-    @PostMapping("/progress")
-    public ResponseEntity<?> updateProgress(
-            @RequestParam String orderId,
-            @RequestParam Integer printedPages
-    ) {
-        return ResponseEntity.ok(
-                queueService.updateProgress(orderId, printedPages)
-        );
-    }
 }

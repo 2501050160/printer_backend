@@ -515,8 +515,7 @@ public PdfFile updateFinalPrice(
 @Transactional
 public PdfFile updateScheduledInfo(
         String orderId,
-        String scheduledTime,
-        String smsNotificationPhone
+        String scheduledTime
 ) {
     PdfFile pdf = repository.findByOrderId(orderId);
     if (pdf == null) {
@@ -531,10 +530,6 @@ public PdfFile updateScheduledInfo(
         }
     } else {
         pdf.setScheduledTime(null);
-    }
-
-    if (smsNotificationPhone != null) {
-        pdf.setSmsNotificationPhone(smsNotificationPhone.trim());
     }
 
     return repository.save(pdf);

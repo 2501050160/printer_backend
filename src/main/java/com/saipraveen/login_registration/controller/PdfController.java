@@ -249,11 +249,10 @@ public ResponseEntity<?> updatePrice(
 @PostMapping("/updateScheduledInfo")
 public ResponseEntity<?> updateScheduledInfo(
         @RequestParam String orderId,
-        @RequestParam(required = false) String scheduledTime,
-        @RequestParam(required = false) String smsNotificationPhone
+        @RequestParam(required = false) String scheduledTime
 ) {
     return ResponseEntity.ok(
-            service.updateScheduledInfo(orderId, scheduledTime, smsNotificationPhone)
+            service.updateScheduledInfo(orderId, scheduledTime)
     );
 }
 

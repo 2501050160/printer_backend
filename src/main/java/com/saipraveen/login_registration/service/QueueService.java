@@ -371,17 +371,6 @@ public class QueueService {
         return lastHeartbeat.isAfter(LocalDateTime.now().minusSeconds(15));
     }
 
-    @Transactional
-    public PdfFile updateProgress(String orderId, int printedPages) {
-        PdfFile pdf = repository.findByOrderId(orderId);
-        if (pdf == null) {
-            throw new RuntimeException("Order not found");
-        }
-        repository.updatePrintedPagesByOrderId(orderId, printedPages);
-        pdf.setPrintedPages(printedPages);
-        return pdf;
-    }
-
     @org.springframework.scheduling.annotation.Scheduled(fixedRate = 30000)
     @Transactional
     public void promoteScheduledOrders() {

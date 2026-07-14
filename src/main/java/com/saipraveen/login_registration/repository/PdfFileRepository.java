@@ -193,12 +193,6 @@ int clearPdfDataForFinishedOrders();
             @Param("status") String status
     );
 
-    @Modifying
-    @Query("UPDATE PdfFile p SET p.printedPages = :printedPages WHERE p.orderId = :orderId")
-    int updatePrintedPagesByOrderId(
-            @Param("orderId") String orderId,
-            @Param("printedPages") Integer printedPages
-    );
 
     @Query("SELECT p FROM PdfFile p WHERE p.status = 'SCHEDULED' AND p.scheduledTime <= :cutoff")
     List<PdfFile> findPendingScheduledOrders(
