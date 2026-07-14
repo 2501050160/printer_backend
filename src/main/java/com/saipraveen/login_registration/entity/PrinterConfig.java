@@ -105,4 +105,13 @@ public class PrinterConfig {
     public void setOtpEnabled(Boolean otpEnabled) {
         this.otpEnabled = otpEnabled;
     }
+
+    // Getter and setter for colourSupported
+    public Boolean getColourSupported() {
+        return colourSupported != null ? colourSupported : false;
+    }
+
+    public void setColourSupported(Boolean colourSupported) {
+        this.colourSupported = colourSupported;
+    }
 }
