@@ -218,4 +218,14 @@ public class UserService {
     public void deleteUser(Long id) {
         repository.deleteById(id);
     }
+
+    @Transactional
+    public void updateUserPassword(String email, String newPassword) {
+        User user = repository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        user.setPassword(newPassword);
+        repository.save(user);
+    }
 }

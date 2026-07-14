@@ -137,4 +137,19 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PostMapping("/oauth/set-password")
+    public ResponseEntity<?> oauthSetPassword(
+            @RequestParam String email,
+            @RequestParam String newPassword) {
+        try {
+            service.updateUserPassword(email, newPassword);
+            java.util.Map<String, Object> resp = new java.util.HashMap<>();
+            resp.put("success", true);
+            resp.put("message", "Password set successfully!");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

@@ -38,8 +38,10 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
             return;
         }
 
+        boolean isNewUser = false;
         User user = userRepository.findByEmail(email);
         if (user == null) {
+            isNewUser = true;
             user = new User();
             user.setEmail(email);
             user.setName(name != null ? name : email.split("@")[0]);
@@ -60,6 +62,7 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
 
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
                 .queryParam("oauth_success", "true")
+                .queryParam("is_new_user", String.valueOf(isNewUser))
                 .queryParam("id", user.getId())
                 .queryParam("name", user.getName())
                 .queryParam("email", user.getEmail())
