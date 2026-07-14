@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import com.saipraveen.login_registration.entity.CampusBlock;
 import com.saipraveen.login_registration.repository.CampusBlockRepository;
 import com.saipraveen.login_registration.service.PricingService;
+import com.saipraveen.login_registration.service.CampusBlockService;
 
 @RestController
 @RequestMapping("/api/blocks")
@@ -19,9 +20,27 @@ public class CampusBlockController {
     @Autowired
     private PricingService pricingService;
 
-    @GetMapping("/all")
-    public ResponseEntity<List<CampusBlock>> getAllBlocks() {
-        return ResponseEntity.ok(repository.findAll());
+    @Autowired
+    private CampusBlockService campusBlockService;
+
+    @PutMapping("/rename/{id}")
+    public ResponseEntity<?> renameBlock(@PathVariable Long id, @RequestParam String newName) {
+        try {
+            CampusBlock updated = campusBlockService.renameBlock(id, newName);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<?> deleteBlock(@PathVariable Long id) {
+        try {
+            campusBlockService.deleteBlock(id);
+            return ResponseEntity.ok("Block deleted successfully");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/add")
