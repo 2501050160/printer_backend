@@ -248,7 +248,8 @@ public PdfFile updateOrder(
     double thesisDiscountPercent = systemSettingService.getSettingDouble("thesis_discount_percent", 15.0);
     double thesisDiscountPages = systemSettingService.getSettingDouble("thesis_discount_pages", 50.0);
     double thesisDiscount = 0.0;
-    if (pages >= (int) thesisDiscountPages) {
+    int totalPagesToPrint = pages * (copies != null ? copies : 1);
+    if (totalPagesToPrint >= (int) thesisDiscountPages) {
         thesisDiscount = thesisDiscountPercent;
     }
 
