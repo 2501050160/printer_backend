@@ -22,6 +22,9 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
     @Autowired
     private UserRepository userRepository;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
@@ -31,7 +34,7 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
         String name = oAuth2User.getAttribute("name");
 
         if (email == null) {
-            response.sendRedirect("http://localhost:5173/login?error=OAuth2 email not found");
+            response.sendRedirect(frontendUrl + "/login?error=OAuth2 email not found");
             return;
         }
 
@@ -55,7 +58,7 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
             user = userRepository.save(user);
         }
 
-        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/login")
+        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
                 .queryParam("oauth_success", "true")
                 .queryParam("id", user.getId())
                 .queryParam("name", user.getName())
