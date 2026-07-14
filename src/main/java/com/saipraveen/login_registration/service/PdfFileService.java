@@ -294,9 +294,9 @@ public PdfFile updatePaymentStatus(
     }
 
 
-public List<PdfFile> getAllOrders() {
+public List<?> getAllOrders() {
 
-    return repository.findAll();
+    return repository.findAllProjectedByOrderByIdAsc();
 }
 
 public Map<String,Object> getDashboardStats(String period) {
@@ -410,11 +410,11 @@ public byte[] getPrintablePdfData(PdfFile pdf) {
 
 
 
-public List<PdfFile> getUserOrders(
+public List<?> getUserOrders(
         Long userId
 ) {
 
-    return repository.findByUserId(
+    return repository.findProjectedByUserId(
             userId
     );
 }

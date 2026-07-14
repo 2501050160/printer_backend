@@ -65,6 +65,10 @@ Long getCompletedOrders();
             Long userId
     );
 
+    List<PdfFileProjection> findProjectedByUserId(Long userId);
+
+    List<PdfFileProjection> findAllProjectedByOrderByIdAsc();
+
     List<PdfFile> findByUserIdAndBlockLocationAndStatus(
             Long userId,
             String blockLocation,
