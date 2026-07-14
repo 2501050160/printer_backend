@@ -166,14 +166,26 @@ int clearPdfDataFinishedBefore(
 )
 int clearPdfDataForFinishedOrders();
 
-@Modifying
-@Query(
-    "UPDATE PdfFile p SET p.pdfData = null WHERE p.pdfData IS NOT NULL AND p.paymentStatus='UNPAID' AND p.uploadTime < :cutoff"
-)
-int clearPdfDataForUnpaidOlderThan(
-        @Param("cutoff") LocalDateTime cutoff
-);
+    @Modifying
+    @Query("UPDATE PdfFile p SET p.pdfData = null WHERE p.pdfData IS NOT NULL AND p.paymentStatus='UNPAID' AND p.uploadTime < :cutoff")
+    int clearPdfDataForUnpaidOlderThan(
+            @Param("cutoff") LocalDateTime cutoff
+    );
 
-long countByUserIdAndPaymentStatus(Long userId, String paymentStatus);
+    long countByUserIdAndPaymentStatus(Long userId, String paymentStatus);
 
+    @Modifying
+    @Query("UPDATE PdfFile p SET p.status = :status, p.queuedAt = :queuedAt WHERE p.orderId = :orderId")
+    int updateStatusAndQueuedAtByOrderId(
+            @Param("orderId") String orderId,
+            @Param("status") String status,
+            @Param("queuedAt") LocalDateTime queuedAt
+    );
+
+    @Modifying
+    @Query("UPDATE PdfFile p SET p.status = :status WHERE p.orderId = :orderId")
+    int updateStatusByOrderId(
+            @Param("orderId") String orderId,
+            @Param("status") String status
+    );
 }

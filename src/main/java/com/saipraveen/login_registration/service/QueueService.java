@@ -50,13 +50,10 @@ public class QueueService {
             }
 
             if (config != null && Boolean.FALSE.equals(config.getOtpEnabled())) {
-                pdf.setStatus("QUEUE");
-                pdf.setQueuedAt(LocalDateTime.now());
-                repository.save(pdf);
+                repository.updateStatusAndQueuedAtByOrderId(pdf.getOrderId(), "QUEUE", LocalDateTime.now());
                 System.out.println("Order promoted directly to QUEUE (OTP disabled for block): " + pdf.getOrderId());
             } else {
-                pdf.setStatus("PENDING_SCAN");
-                repository.save(pdf);
+                repository.updateStatusByOrderId(pdf.getOrderId(), "PENDING_SCAN");
                 System.out.println("Order held in PENDING_SCAN for OTP verification: " + pdf.getOrderId());
             }
         }
@@ -173,13 +170,17 @@ public class QueueService {
                 System.err.println("Failed to fetch printer config: " + e.getMessage());
             }
 
+            String newStatus = "PENDING_SCAN";
+            LocalDateTime queuedAt = null;
             if (config != null && Boolean.FALSE.equals(config.getOtpEnabled())) {
-                pdf.setStatus("QUEUE");
-                pdf.setQueuedAt(LocalDateTime.now());
+                newStatus = "QUEUE";
+                queuedAt = LocalDateTime.now();
+                repository.updateStatusAndQueuedAtByOrderId(orderId, newStatus, queuedAt);
+                pdf.setQueuedAt(queuedAt);
             } else {
-                pdf.setStatus("PENDING_SCAN");
+                repository.updateStatusByOrderId(orderId, newStatus);
             }
-            return repository.save(pdf);
+            pdf.setStatus(newStatus);
         }
         return pdf;
     }
