@@ -15,6 +15,8 @@ public interface PdfFileRepository
 
     PdfFile findByOrderId(String orderId);
 
+    PdfFileProjection findProjectionByOrderId(String orderId);
+
     @Query(
         value = "SELECT COALESCE(MAX(id),0) FROM pdf_files",
         nativeQuery = true

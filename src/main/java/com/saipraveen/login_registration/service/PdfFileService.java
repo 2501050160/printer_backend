@@ -959,4 +959,8 @@ private void addPageRange(
         pdf.setQueuedAt(LocalDateTime.now());
         return repository.save(pdf);
     }
+
+    public com.saipraveen.login_registration.repository.PdfFileProjection getOrderDetails(String orderId) {
+        return repository.findProjectionByOrderId(orderId);
+    }
 }

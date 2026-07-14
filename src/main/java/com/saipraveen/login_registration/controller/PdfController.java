@@ -317,4 +317,15 @@ public ResponseEntity<?> cancelWindow(
                 service.releasePrintJob(orderId, otp)
         );
     }
+
+    @GetMapping("/details")
+    public ResponseEntity<?> getOrderDetails(
+            @RequestParam String orderId
+    ) {
+        com.saipraveen.login_registration.repository.PdfFileProjection pdf = service.getOrderDetails(orderId);
+        if (pdf == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(pdf);
+    }
 }

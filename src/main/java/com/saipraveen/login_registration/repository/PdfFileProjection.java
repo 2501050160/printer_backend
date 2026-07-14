@@ -10,6 +10,7 @@ public interface PdfFileProjection {
     Double getPrice();
     LocalDateTime getUploadTime();
     String getPaymentStatus();
+    String getRazorpayPaymentId();
     String getStatus();
     String getPrintType();
     Integer getTotalPages();
