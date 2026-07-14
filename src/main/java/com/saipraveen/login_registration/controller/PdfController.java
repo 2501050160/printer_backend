@@ -246,6 +246,17 @@ public ResponseEntity<?> updatePrice(
     );
 }
 
+@PostMapping("/updateScheduledInfo")
+public ResponseEntity<?> updateScheduledInfo(
+        @RequestParam String orderId,
+        @RequestParam(required = false) String scheduledTime,
+        @RequestParam(required = false) String smsNotificationPhone
+) {
+    return ResponseEntity.ok(
+            service.updateScheduledInfo(orderId, scheduledTime, smsNotificationPhone)
+    );
+}
+
 @PostMapping("/cancelOrder")
 public ResponseEntity<?> cancelOrder(
 

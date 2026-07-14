@@ -25,4 +25,7 @@ public interface PdfFileProjection {
     Long getFileSize();
     Double getOriginalPrice();
     Double getDiscountAmount();
+    Integer getPrintedPages();
+    LocalDateTime getScheduledTime();
+    String getSmsNotificationPhone();
 }

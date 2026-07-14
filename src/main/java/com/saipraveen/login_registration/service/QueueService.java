@@ -285,15 +285,20 @@ public class QueueService {
         LocalDateTime now = LocalDateTime.now();
 
         pdf.setPaidAt(now);
-        pdf.setCancelWindowEndsAt(
-                now.plusSeconds(cancelWindowSeconds)
-        );
         pdf.setPaymentStatus("PAID");
-        pdf.setStatus("CANCEL_WINDOW");
 
         // Generate random 4-digit OTP
         int randomOtp = 1000 + new java.util.Random().nextInt(9000);
         pdf.setOtpCode(String.valueOf(randomOtp));
+
+        if (pdf.getScheduledTime() != null) {
+            pdf.setStatus("SCHEDULED");
+        } else {
+            pdf.setCancelWindowEndsAt(
+                    now.plusSeconds(cancelWindowSeconds)
+            );
+            pdf.setStatus("CANCEL_WINDOW");
+        }
 
         if (pdf.getOriginalPrice() == null && pdf.getPrice() != null) {
             pdf.setOriginalPrice(pdf.getPrice());
@@ -364,5 +369,39 @@ public class QueueService {
             return false;
         }
         return lastHeartbeat.isAfter(LocalDateTime.now().minusSeconds(15));
+    }
+
+    @Transactional
+    public PdfFile updateProgress(String orderId, int printedPages) {
+        PdfFile pdf = repository.findByOrderId(orderId);
+        if (pdf == null) {
+            throw new RuntimeException("Order not found");
+        }
+        repository.updatePrintedPagesByOrderId(orderId, printedPages);
+        pdf.setPrintedPages(printedPages);
+        return pdf;
+    }
+
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 30000)
+    @Transactional
+    public void promoteScheduledOrders() {
+        LocalDateTime cutoff = LocalDateTime.now().plusMinutes(5);
+        List<PdfFile> pendingScheduled = repository.findPendingScheduledOrders(cutoff);
+        for (PdfFile pdf : pendingScheduled) {
+            com.saipraveen.login_registration.entity.PrinterConfig config = null;
+            try {
+                config = printerConfigService.getPrinterByBlock(pdf.getBlockLocation());
+            } catch (Exception e) {
+                System.err.println("Failed to fetch printer config: " + e.getMessage());
+            }
+
+            if (config != null && Boolean.FALSE.equals(config.getOtpEnabled())) {
+                repository.updateStatusAndQueuedAtByOrderId(pdf.getOrderId(), "QUEUE", LocalDateTime.now());
+                System.out.println("Scheduled order promoted directly to QUEUE (OTP disabled): " + pdf.getOrderId());
+            } else {
+                repository.updateStatusAndCancelWindowEndsAtByOrderId(pdf.getOrderId(), "PENDING_SCAN", LocalDateTime.now().plusSeconds(30));
+                System.out.println("Scheduled order held in PENDING_SCAN for OTP: " + pdf.getOrderId());
+            }
+        }
     }
 }

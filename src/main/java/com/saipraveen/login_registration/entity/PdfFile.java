@@ -62,6 +62,12 @@ private String printType;
 
     private String appliedReferralCode;
 
+    private Integer printedPages = 0;
+
+    private java.time.LocalDateTime scheduledTime;
+
+    private String smsNotificationPhone;
+
     @Column(columnDefinition = "bytea")
     @com.fasterxml.jackson.annotation.JsonIgnore
     private byte[] pdfData;
@@ -287,5 +293,29 @@ public void setTotalPages(Integer totalPages) {
 
     public void setOtpCode(String otpCode) {
         this.otpCode = otpCode;
+    }
+
+    public Integer getPrintedPages() {
+        return printedPages;
+    }
+
+    public void setPrintedPages(Integer printedPages) {
+        this.printedPages = printedPages;
+    }
+
+    public java.time.LocalDateTime getScheduledTime() {
+        return scheduledTime;
+    }
+
+    public void setScheduledTime(java.time.LocalDateTime scheduledTime) {
+        this.scheduledTime = scheduledTime;
+    }
+
+    public String getSmsNotificationPhone() {
+        return smsNotificationPhone;
+    }
+
+    public void setSmsNotificationPhone(String smsNotificationPhone) {
+        this.smsNotificationPhone = smsNotificationPhone;
     }
 }

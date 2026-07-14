@@ -511,6 +511,34 @@ public PdfFile updateFinalPrice(
     return repository.save(pdf);
 }
 
+@Transactional
+public PdfFile updateScheduledInfo(
+        String orderId,
+        String scheduledTime,
+        String smsNotificationPhone
+) {
+    PdfFile pdf = repository.findByOrderId(orderId);
+    if (pdf == null) {
+        throw new RuntimeException("Order Not Found");
+    }
+
+    if (scheduledTime != null && !scheduledTime.trim().isEmpty()) {
+        try {
+            pdf.setScheduledTime(LocalDateTime.parse(scheduledTime));
+        } catch (Exception e) {
+            System.err.println("Failed to parse scheduled time: " + scheduledTime + " - " + e.getMessage());
+        }
+    } else {
+        pdf.setScheduledTime(null);
+    }
+
+    if (smsNotificationPhone != null) {
+        pdf.setSmsNotificationPhone(smsNotificationPhone.trim());
+    }
+
+    return repository.save(pdf);
+}
+
 public Map<String, Object> getCancelWindowInfo(String orderId) {
 
     PdfFile pdf =

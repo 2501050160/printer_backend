@@ -14,6 +14,9 @@ public class PrinterConfigService {
     @Autowired
     private PrinterConfigRepository repository;
 
+    @Autowired
+    private SystemSettingService systemSettingService;
+
     public PrinterConfig savePrinter(
             PrinterConfig printer
     ) {
@@ -54,8 +57,21 @@ public class PrinterConfigService {
         PrinterConfig printer = repository.findByBlockLocation(blockLocation);
         if (printer != null) {
             int current = printer.getPaperCount() != null ? printer.getPaperCount() : 0;
-            printer.setPaperCount(Math.max(0, current - pages));
+            int newCount = Math.max(0, current - pages);
+            printer.setPaperCount(newCount);
             repository.save(printer);
+
+            // Check if paper count drops below 50 (warning threshold)
+            if (newCount < 50) {
+                String adminPhone = "9876543210";
+                try {
+                    adminPhone = systemSettingService.getSetting("admin_sms_phone", "9876543210");
+                } catch (Exception e) {
+                    // fallback
+                }
+                System.out.println("[SMS ALERT to Admin (" + adminPhone + ")]: WARNING! " + blockLocation + 
+                    " paper count is running critically low (" + newCount + " pages left). Please refill or restock paper immediately! ⚠️");
+            }
         }
     }
 
