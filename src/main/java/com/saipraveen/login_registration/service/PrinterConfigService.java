@@ -63,9 +63,9 @@ public class PrinterConfigService {
 
             // Check if paper count drops below 50 (warning threshold)
             if (newCount < 50) {
-                String adminPhone = "9876543210";
+                String adminPhone = "9494189664";
                 try {
-                    adminPhone = systemSettingService.getSetting("admin_sms_phone", "9876543210");
+                    adminPhone = systemSettingService.getSetting("admin_sms_phone", "9494189664");
                 } catch (Exception e) {
                     // fallback
                 }

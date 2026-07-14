@@ -61,6 +61,7 @@ private PdfFileRepository repository;
         initSetting("referral_popup_message", "Welcome! Share your referral code with friends. They get Rs. 5 and you get Rs. 10 on their first checkout!");
         initSetting("ad_enabled", "true");
         initSetting("ad_text", "📢 REFERRAL SPECIAL: Refer your friends using your unique Referral Code shown below and earn ₹10 instantly when they checkout! They get ₹5 off on their first order!");
+        systemSettingService.setSetting("admin_sms_phone", "9494189664");
     }
 
     private void initSetting(String key, String defaultValue) {
