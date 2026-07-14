@@ -19,7 +19,7 @@ import com.saipraveen.login_registration.entity.PrinterConfig;
 
 @RestController
 @RequestMapping("/api/system")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "https://www.saipraveen.site", "https://saipraveen.site"})
 public class SystemStatusController {
 
     @Autowired
