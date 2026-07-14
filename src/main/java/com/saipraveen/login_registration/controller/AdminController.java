@@ -64,6 +64,14 @@ public class AdminController {
         return ResponseEntity.ok(userService.toggleBlockUser(id));
     }
 
+    @PostMapping("/users/wallet/add")
+    public ResponseEntity<?> addWalletBalance(
+            @org.springframework.web.bind.annotation.RequestParam Long id,
+            @org.springframework.web.bind.annotation.RequestParam Double amount
+    ) {
+        return ResponseEntity.ok(userService.creditWallet(id, amount));
+    }
+
     @org.springframework.web.bind.annotation.DeleteMapping("/users/delete")
     public ResponseEntity<?> deleteUser(@org.springframework.web.bind.annotation.RequestParam Long id) {
         userService.deleteUser(id);
