@@ -123,6 +123,11 @@ public class AdminController {
         settings.put("generalPopupMessage", systemSettingService.getSetting("general_popup_message", ""));
         settings.put("thesisDiscountPages", systemSettingService.getSettingDouble("thesis_discount_pages", 50.0));
         settings.put("thesisDiscountPercent", systemSettingService.getSettingDouble("thesis_discount_percent", 15.0));
+        settings.put("offpeakDiscountPercent", systemSettingService.getSettingDouble("offpeak_discount_percent", 15.0));
+        settings.put("offpeakStartHour", systemSettingService.getSettingDouble("offpeak_start_hour", 21.0));
+        settings.put("offpeakEndHour", systemSettingService.getSettingDouble("offpeak_end_hour", 7.0));
+        settings.put("offpeakMorningStart", systemSettingService.getSettingDouble("offpeak_morning_start", 7.0));
+        settings.put("offpeakMorningEnd", systemSettingService.getSettingDouble("offpeak_morning_end", 9.0));
         return ResponseEntity.ok(settings);
     }
 
@@ -160,6 +165,21 @@ public class AdminController {
         }
         if (request.containsKey("thesisDiscountPercent")) {
             systemSettingService.setSetting("thesis_discount_percent", String.valueOf(request.get("thesisDiscountPercent")));
+        }
+        if (request.containsKey("offpeakDiscountPercent")) {
+            systemSettingService.setSetting("offpeak_discount_percent", String.valueOf(request.get("offpeakDiscountPercent")));
+        }
+        if (request.containsKey("offpeakStartHour")) {
+            systemSettingService.setSetting("offpeak_start_hour", String.valueOf(request.get("offpeakStartHour")));
+        }
+        if (request.containsKey("offpeakEndHour")) {
+            systemSettingService.setSetting("offpeak_end_hour", String.valueOf(request.get("offpeakEndHour")));
+        }
+        if (request.containsKey("offpeakMorningStart")) {
+            systemSettingService.setSetting("offpeak_morning_start", String.valueOf(request.get("offpeakMorningStart")));
+        }
+        if (request.containsKey("offpeakMorningEnd")) {
+            systemSettingService.setSetting("offpeak_morning_end", String.valueOf(request.get("offpeakMorningEnd")));
         }
         return ResponseEntity.ok("Settings updated successfully");
     }

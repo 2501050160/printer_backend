@@ -64,6 +64,11 @@ private PdfFileRepository repository;
         initSetting("referral_popup_message", "Welcome! Share your referral code with friends. They get Rs. 5 and you get Rs. 10 on their first checkout!");
         initSetting("ad_enabled", "true");
         initSetting("ad_text", "📢 REFERRAL SPECIAL: Refer your friends using your unique Referral Code shown below and earn ₹10 instantly when they checkout! They get ₹5 off on their first order!");
+        initSetting("offpeak_discount_percent", "15.0");
+        initSetting("offpeak_start_hour", "21.0");
+        initSetting("offpeak_end_hour", "7.0");
+        initSetting("offpeak_morning_start", "7.0");
+        initSetting("offpeak_morning_end", "9.0");
         systemSettingService.setSetting("admin_sms_phone", "9494189664");
     }
 
@@ -239,10 +244,23 @@ public PdfFile updateOrder(
 
     double basePrice = actualSheets * copies * rate;
 
-    // 1. Off-peak Dynamic Discount (15%)
+    // 1. Off-peak Dynamic Discount
+    double offpeakDiscountPercent = systemSettingService.getSettingDouble("offpeak_discount_percent", 15.0);
+    int offpeakStartHour = (int) systemSettingService.getSettingDouble("offpeak_start_hour", 21.0);
+    int offpeakEndHour = (int) systemSettingService.getSettingDouble("offpeak_end_hour", 7.0);
+    int offpeakMorningStart = (int) systemSettingService.getSettingDouble("offpeak_morning_start", 7.0);
+    int offpeakMorningEnd = (int) systemSettingService.getSettingDouble("offpeak_morning_end", 9.0);
+
     int hour = java.time.LocalDateTime.now().getHour();
-    boolean isOffPeak = (hour >= 7 && hour < 9) || (hour >= 21 || hour < 7);
-    double dynamicDiscountPercent = isOffPeak ? 15.0 : 0.0;
+    boolean isMorningOffPeak = (hour >= offpeakMorningStart && hour < offpeakMorningEnd);
+    boolean isEveningOffPeak;
+    if (offpeakStartHour > offpeakEndHour) {
+        isEveningOffPeak = (hour >= offpeakStartHour || hour < offpeakEndHour);
+    } else {
+        isEveningOffPeak = (hour >= offpeakStartHour && hour < offpeakEndHour);
+    }
+    boolean isOffPeak = isMorningOffPeak || isEveningOffPeak;
+    double dynamicDiscountPercent = isOffPeak ? offpeakDiscountPercent : 0.0;
 
     // 2. Thesis/Bulk print discount
     double thesisDiscountPercent = systemSettingService.getSettingDouble("thesis_discount_percent", 15.0);
