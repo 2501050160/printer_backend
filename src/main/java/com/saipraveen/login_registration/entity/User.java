@@ -118,4 +118,14 @@ public class User {
     public void setOtpExpiry(java.time.LocalDateTime otpExpiry) {
         this.otpExpiry = otpExpiry;
     }
+
+    private String college = "KLU";
+
+    public String getCollege() {
+        return college;
+    }
+
+    public void setCollege(String college) {
+        this.college = college;
+    }
 }
