@@ -108,7 +108,7 @@ public class CouponService {
         repository.deleteById(id);
     }
 
-    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 30000)
+    @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 0 * * *")
     @org.springframework.transaction.annotation.Transactional
     public void autoDeleteInvalidCoupons() {
         List<Coupon> allCoupons = repository.findAll();

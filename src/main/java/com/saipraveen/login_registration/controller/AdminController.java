@@ -131,6 +131,7 @@ public class AdminController {
         settings.put("offpeakEndHour", systemSettingService.getSettingDouble("offpeak_end_hour", 7.0));
         settings.put("offpeakMorningStart", systemSettingService.getSettingDouble("offpeak_morning_start", 7.0));
         settings.put("offpeakMorningEnd", systemSettingService.getSettingDouble("offpeak_morning_end", 9.0));
+        settings.put("suspendedColleges", systemSettingService.getSetting("suspended_colleges", ""));
         return ResponseEntity.ok(settings);
     }
 
@@ -183,6 +184,9 @@ public class AdminController {
         }
         if (request.containsKey("offpeakMorningEnd")) {
             systemSettingService.setSetting("offpeak_morning_end", String.valueOf(request.get("offpeakMorningEnd")));
+        }
+        if (request.containsKey("suspendedColleges")) {
+            systemSettingService.setSetting("suspended_colleges", String.valueOf(request.get("suspendedColleges")));
         }
         return ResponseEntity.ok("Settings updated successfully");
     }

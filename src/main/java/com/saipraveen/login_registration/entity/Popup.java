@@ -82,4 +82,14 @@ public class Popup {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+    private String college = "ALL";
+
+    public String getCollege() {
+        return college == null ? "ALL" : college;
+    }
+
+    public void setCollege(String college) {
+        this.college = college;
+    }
 }

@@ -17,11 +17,18 @@ public class PopupController {
     private PopupRepository repository;
 
     @GetMapping("/active")
-    public ResponseEntity<?> getActivePopups(@RequestParam(required = false) String page) {
+    public ResponseEntity<?> getActivePopups(
+            @RequestParam(required = false) String page,
+            @RequestParam(defaultValue = "KLU") String college) {
         try {
             List<Popup> allActive = repository.findByActiveTrue();
             List<Popup> matched = new ArrayList<>();
             for (Popup p : allActive) {
+                String colTarget = p.getCollege();
+                if (!"ALL".equalsIgnoreCase(colTarget) && !colTarget.equalsIgnoreCase(college)) {
+                    continue;
+                }
+
                 if ("ALL".equalsIgnoreCase(p.getTargetPage())) {
                     matched.add(p);
                 } else if (page != null && page.equalsIgnoreCase(p.getTargetPage())) {

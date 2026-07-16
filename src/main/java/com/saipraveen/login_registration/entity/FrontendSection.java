@@ -99,4 +99,14 @@ public class FrontendSection {
     public void setDisplayOrder(Integer displayOrder) {
         this.displayOrder = displayOrder;
     }
+
+    private String college = "ALL";
+
+    public String getCollege() {
+        return college == null ? "ALL" : college;
+    }
+
+    public void setCollege(String college) {
+        this.college = college;
+    }
 }

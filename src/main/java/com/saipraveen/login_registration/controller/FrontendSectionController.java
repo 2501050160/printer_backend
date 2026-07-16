@@ -16,8 +16,12 @@ public class FrontendSectionController {
     private FrontendSectionRepository repository;
 
     @GetMapping("/active")
-    public ResponseEntity<List<FrontendSection>> getActiveSections() {
-        return ResponseEntity.ok(repository.findByActiveTrueOrderByDisplayOrderAsc());
+    public ResponseEntity<List<FrontendSection>> getActiveSections(@RequestParam(defaultValue = "KLU") String college) {
+        List<FrontendSection> allActive = repository.findByActiveTrueOrderByDisplayOrderAsc();
+        List<FrontendSection> filtered = allActive.stream()
+            .filter(s -> "ALL".equalsIgnoreCase(s.getCollege()) || s.getCollege().equalsIgnoreCase(college))
+            .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(filtered);
     }
 
     @GetMapping("/all")
