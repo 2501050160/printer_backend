@@ -31,6 +31,8 @@ import com.saipraveen.login_registration.entity.PdfFile;
 import com.saipraveen.login_registration.entity.User;
 import com.saipraveen.login_registration.repository.PdfFileRepository;
 import com.saipraveen.login_registration.repository.UserRepository;
+import com.saipraveen.login_registration.entity.CampusBlock;
+import com.saipraveen.login_registration.repository.CampusBlockRepository;
 
 @Service
 public class PdfFileService {
@@ -54,6 +56,9 @@ private PdfFileRepository repository;
 
     @Autowired
     private PrinterConfigService printerConfigService;
+
+    @Autowired
+    private CampusBlockRepository blockRepository;
 
     @jakarta.annotation.PostConstruct
     public void initSystemSettings() {
@@ -245,11 +250,20 @@ public PdfFile updateOrder(
     double basePrice = actualSheets * copies * rate;
 
     // 1. Off-peak Dynamic Discount
-    double offpeakDiscountPercent = systemSettingService.getSettingDouble("offpeak_discount_percent", 15.0);
-    int offpeakStartHour = (int) systemSettingService.getSettingDouble("offpeak_start_hour", 21.0);
-    int offpeakEndHour = (int) systemSettingService.getSettingDouble("offpeak_end_hour", 7.0);
-    int offpeakMorningStart = (int) systemSettingService.getSettingDouble("offpeak_morning_start", 7.0);
-    int offpeakMorningEnd = (int) systemSettingService.getSettingDouble("offpeak_morning_end", 9.0);
+    String college = "KLU";
+    if (pdf.getBlockLocation() != null) {
+        CampusBlock block = blockRepository.findByName(pdf.getBlockLocation());
+        if (block != null && block.getCollege() != null) {
+            college = block.getCollege();
+        }
+    }
+    
+    boolean offpeakEnabled = systemSettingService.getSettingBool("offpeak_enabled_" + college, systemSettingService.getSettingBool("offpeak_enabled", true));
+    double offpeakDiscountPercent = systemSettingService.getSettingDouble("offpeak_discount_percent_" + college, systemSettingService.getSettingDouble("offpeak_discount_percent", 15.0));
+    int offpeakStartHour = (int) systemSettingService.getSettingDouble("offpeak_start_hour_" + college, systemSettingService.getSettingDouble("offpeak_start_hour", 21.0));
+    int offpeakEndHour = (int) systemSettingService.getSettingDouble("offpeak_end_hour_" + college, systemSettingService.getSettingDouble("offpeak_end_hour", 7.0));
+    int offpeakMorningStart = (int) systemSettingService.getSettingDouble("offpeak_morning_start_" + college, systemSettingService.getSettingDouble("offpeak_morning_start", 7.0));
+    int offpeakMorningEnd = (int) systemSettingService.getSettingDouble("offpeak_morning_end_" + college, systemSettingService.getSettingDouble("offpeak_morning_end", 9.0));
 
     int hour = java.time.LocalDateTime.now().getHour();
     boolean isMorningOffPeak = (hour >= offpeakMorningStart && hour < offpeakMorningEnd);
@@ -259,7 +273,7 @@ public PdfFile updateOrder(
     } else {
         isEveningOffPeak = (hour >= offpeakStartHour && hour < offpeakEndHour);
     }
-    boolean isOffPeak = isMorningOffPeak || isEveningOffPeak;
+    boolean isOffPeak = offpeakEnabled && (isMorningOffPeak || isEveningOffPeak);
     double dynamicDiscountPercent = isOffPeak ? offpeakDiscountPercent : 0.0;
 
     // 2. Thesis/Bulk print discount

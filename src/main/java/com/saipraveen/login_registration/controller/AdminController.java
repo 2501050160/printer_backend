@@ -191,6 +191,43 @@ public class AdminController {
         return ResponseEntity.ok("Settings updated successfully");
     }
 
+    @org.springframework.web.bind.annotation.GetMapping("/settings/offpeak")
+    public ResponseEntity<?> getCollegeOffpeakSettings(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "KLU") String college) {
+        java.util.Map<String, Object> settings = new java.util.HashMap<>();
+        settings.put("offpeakEnabled", systemSettingService.getSettingBool("offpeak_enabled_" + college, systemSettingService.getSettingBool("offpeak_enabled", true)));
+        settings.put("offpeakDiscountPercent", systemSettingService.getSettingDouble("offpeak_discount_percent_" + college, systemSettingService.getSettingDouble("offpeak_discount_percent", 15.0)));
+        settings.put("offpeakStartHour", systemSettingService.getSettingDouble("offpeak_start_hour_" + college, systemSettingService.getSettingDouble("offpeak_start_hour", 21.0)));
+        settings.put("offpeakEndHour", systemSettingService.getSettingDouble("offpeak_end_hour_" + college, systemSettingService.getSettingDouble("offpeak_end_hour", 7.0)));
+        settings.put("offpeakMorningStart", systemSettingService.getSettingDouble("offpeak_morning_start_" + college, systemSettingService.getSettingDouble("offpeak_morning_start", 7.0)));
+        settings.put("offpeakMorningEnd", systemSettingService.getSettingDouble("offpeak_morning_end_" + college, systemSettingService.getSettingDouble("offpeak_morning_end", 9.0)));
+        return ResponseEntity.ok(settings);
+    }
+
+    @PostMapping("/settings/offpeak/update")
+    public ResponseEntity<?> updateCollegeOffpeakSettings(
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "KLU") String college,
+            @RequestBody java.util.Map<String, Object> request) {
+        if (request.containsKey("offpeakEnabled")) {
+            systemSettingService.setSetting("offpeak_enabled_" + college, String.valueOf(request.get("offpeakEnabled")));
+        }
+        if (request.containsKey("offpeakDiscountPercent")) {
+            systemSettingService.setSetting("offpeak_discount_percent_" + college, String.valueOf(request.get("offpeakDiscountPercent")));
+        }
+        if (request.containsKey("offpeakStartHour")) {
+            systemSettingService.setSetting("offpeak_start_hour_" + college, String.valueOf(request.get("offpeakStartHour")));
+        }
+        if (request.containsKey("offpeakEndHour")) {
+            systemSettingService.setSetting("offpeak_end_hour_" + college, String.valueOf(request.get("offpeakEndHour")));
+        }
+        if (request.containsKey("offpeakMorningStart")) {
+            systemSettingService.setSetting("offpeak_morning_start_" + college, String.valueOf(request.get("offpeakMorningStart")));
+        }
+        if (request.containsKey("offpeakMorningEnd")) {
+            systemSettingService.setSetting("offpeak_morning_end_" + college, String.valueOf(request.get("offpeakMorningEnd")));
+        }
+        return ResponseEntity.ok("College off-peak settings updated successfully");
+    }
+
     @org.springframework.web.bind.annotation.GetMapping("/printers/status")
     public ResponseEntity<?> getPrintersStatus() {
         return ResponseEntity.ok(pdfFileService.getPrinterLiveStatusList());
