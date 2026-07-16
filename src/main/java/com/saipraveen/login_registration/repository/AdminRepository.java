@@ -11,4 +11,6 @@ public interface AdminRepository
             String username,
             String password
     );
+
+    Admin findByUsername(String username);
 }

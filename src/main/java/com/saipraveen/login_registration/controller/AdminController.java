@@ -79,7 +79,10 @@ public class AdminController {
     }
 
     @PostMapping("/reset-stats")
-    public ResponseEntity<?> resetStats() {
+    public ResponseEntity<?> resetStats(@org.springframework.web.bind.annotation.RequestParam String adminUsername) {
+        if (!"admin".equalsIgnoreCase(adminUsername)) {
+            return ResponseEntity.badRequest().body("Only the main admin can reset statistics and database records!");
+        }
         pdfFileService.resetAllStats();
         return ResponseEntity.ok("Statistics reset successfully");
     }
@@ -187,5 +190,25 @@ public class AdminController {
     @org.springframework.web.bind.annotation.GetMapping("/printers/status")
     public ResponseEntity<?> getPrintersStatus() {
         return ResponseEntity.ok(pdfFileService.getPrinterLiveStatusList());
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/subadmins")
+    public ResponseEntity<?> getAllSubAdmins() {
+        return ResponseEntity.ok(service.getAllSubAdmins());
+    }
+
+    @PostMapping("/subadmins/create")
+    public ResponseEntity<?> createSubAdmin(@RequestBody Admin subAdmin) {
+        try {
+            return ResponseEntity.ok(service.createSubAdmin(subAdmin));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/subadmins/delete")
+    public ResponseEntity<?> deleteSubAdmin(@org.springframework.web.bind.annotation.RequestParam Long id) {
+        service.deleteSubAdmin(id);
+        return ResponseEntity.ok("Sub-admin deleted successfully");
     }
 }

@@ -18,6 +18,10 @@ public class Admin {
 
     private String password;
 
+    private String role = "SUB_ADMIN";
+
+    private String college = "KLU";
+
     public Long getId() {
         return id;
     }
@@ -40,5 +44,27 @@ public class Admin {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getRole() {
+        if ("admin".equalsIgnoreCase(username)) {
+            return "MAIN_ADMIN";
+        }
+        return role == null ? "SUB_ADMIN" : role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public String getCollege() {
+        if ("admin".equalsIgnoreCase(username)) {
+            return "ALL";
+        }
+        return college == null ? "KLU" : college;
+    }
+
+    public void setCollege(String college) {
+        this.college = college;
     }
 }
