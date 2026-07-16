@@ -23,7 +23,7 @@ public class CampusBlockService {
         return blockRepository.findAll();
     }
 
-    public CampusBlock createBlock(String name) {
+    public CampusBlock createBlock(String name, String college) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Block name cannot be empty");
         }
@@ -31,7 +31,8 @@ public class CampusBlockService {
         if (blockRepository.findByName(trimmed) != null) {
             throw new IllegalArgumentException("Block already exists");
         }
-        return blockRepository.save(new CampusBlock(trimmed));
+        String col = (college == null || college.trim().isEmpty()) ? "KLU" : college.trim();
+        return blockRepository.save(new CampusBlock(trimmed, col));
     }
 
     @Transactional

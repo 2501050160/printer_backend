@@ -49,7 +49,10 @@ public class CampusBlockController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> addBlock(@RequestParam String name) {
+    public ResponseEntity<?> addBlock(
+            @RequestParam String name,
+            @RequestParam(required = false, defaultValue = "KLU") String college
+    ) {
         if (name == null || name.trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Block name cannot be empty");
         }
@@ -60,7 +63,8 @@ public class CampusBlockController {
             return ResponseEntity.badRequest().body("Block already exists");
         }
 
-        CampusBlock block = repository.save(new CampusBlock(trimmed));
+        String col = (college == null || college.trim().isEmpty()) ? "KLU" : college.trim();
+        CampusBlock block = repository.save(new CampusBlock(trimmed, col));
         
         // Auto-initialize prices for the new block so that we can price orders
         pricingService.updatePrice("BW", 2.0, trimmed);
