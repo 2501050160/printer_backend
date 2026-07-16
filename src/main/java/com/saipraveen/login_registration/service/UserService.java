@@ -228,4 +228,17 @@ public class UserService {
         user.setPassword(newPassword);
         repository.save(user);
     }
+
+    @Transactional
+    public void updateUserPasswordAndCollege(String email, String newPassword, String college) {
+        User user = repository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        user.setPassword(newPassword);
+        if (college != null && !college.trim().isEmpty()) {
+            user.setCollege(college.trim());
+        }
+        repository.save(user);
+    }
 }

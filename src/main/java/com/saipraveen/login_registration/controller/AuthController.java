@@ -141,9 +141,10 @@ public class AuthController {
     @PostMapping("/oauth/set-password")
     public ResponseEntity<?> oauthSetPassword(
             @RequestParam String email,
-            @RequestParam String newPassword) {
+            @RequestParam String newPassword,
+            @RequestParam(required = false) String college) {
         try {
-            service.updateUserPassword(email, newPassword);
+            service.updateUserPasswordAndCollege(email, newPassword, college);
             java.util.Map<String, Object> resp = new java.util.HashMap<>();
             resp.put("success", true);
             resp.put("message", "Password set successfully!");
