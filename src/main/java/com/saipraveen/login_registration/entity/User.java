@@ -122,7 +122,7 @@ public class User {
     private String college = "KLU";
 
     public String getCollege() {
-        return college;
+        return college == null ? "KLU" : college;
     }
 
     public void setCollege(String college) {
