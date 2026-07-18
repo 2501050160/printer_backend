@@ -47,8 +47,18 @@ public class AdminService {
         if (repository.findByUsername(subAdmin.getUsername()) != null) {
             throw new RuntimeException("Username already exists");
         }
-        subAdmin.setRole("SUB_ADMIN");
+        if (subAdmin.getRole() == null || (!subAdmin.getRole().equals("MANAGER") && !subAdmin.getRole().equals("SUB_ADMIN"))) {
+            subAdmin.setRole("SUB_ADMIN");
+        }
         return repository.save(subAdmin);
+    }
+
+    public boolean verifyManagerSecret(Long adminId, String secret) {
+        Admin admin = repository.findById(adminId).orElse(null);
+        if (admin != null && "MANAGER".equals(admin.getRole())) {
+            return secret != null && secret.equals(admin.getManagerSecret());
+        }
+        return false;
     }
 
     @Transactional

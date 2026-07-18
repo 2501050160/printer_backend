@@ -43,7 +43,10 @@ public class DataInitializer implements CommandLineRunner {
             {"adEnabled", "true"},
             {"adText", "Print thesis/assignments directly from your phone skip lines!"},
             {"generalPopupEnabled", "false"},
-            {"generalPopupMessage", ""}
+            {"generalPopupMessage", ""},
+            {"razorpayChargePercentage", "2.36"},
+            {"managerMaxColorPrinters", "1"},
+            {"managerMaxBwPrinters", "1"}
         };
         for (String[] pair : settings) {
             if (!settingRepository.existsById(pair[0])) {

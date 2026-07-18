@@ -252,4 +252,13 @@ public class AdminController {
         service.deleteSubAdmin(id);
         return ResponseEntity.ok("Sub-admin deleted successfully");
     }
+
+    @PostMapping("/verify-secret")
+    public ResponseEntity<?> verifySecret(@org.springframework.web.bind.annotation.RequestParam Long adminId, @org.springframework.web.bind.annotation.RequestParam String secret) {
+        boolean isValid = service.verifyManagerSecret(adminId, secret);
+        if (isValid) {
+            return ResponseEntity.ok(java.util.Collections.singletonMap("success", true));
+        }
+        return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("success", false));
+    }
 }

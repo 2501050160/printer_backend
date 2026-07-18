@@ -22,6 +22,8 @@ public class Admin {
 
     private String college = "KLU";
 
+    private String managerSecret;
+
     public Long getId() {
         return id;
     }
@@ -66,5 +68,13 @@ public class Admin {
 
     public void setCollege(String college) {
         this.college = college;
+    }
+
+    public String getManagerSecret() {
+        return managerSecret;
+    }
+
+    public void setManagerSecret(String managerSecret) {
+        this.managerSecret = managerSecret;
     }
 }
