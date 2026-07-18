@@ -30,50 +30,8 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // 1. Initialize Campus Blocks if empty
-        if (blockRepository.count() == 0) {
-            blockRepository.save(new CampusBlock("C Block"));
-            blockRepository.save(new CampusBlock("A Block"));
-            blockRepository.save(new CampusBlock("H Block"));
-            blockRepository.save(new CampusBlock("IT Block"));
-        }
-
-        // 2. Initialize Pricing for each block if empty
-        String[] blocks = {"C Block", "A Block", "H Block", "IT Block"};
-        for (String block : blocks) {
-            if (pricingRepository.findByPrintTypeAndBlockLocation("BW", block) == null) {
-                Pricing bwPrice = new Pricing();
-                bwPrice.setPrintType("BW");
-                bwPrice.setPricePerPage(2.0);
-                bwPrice.setBlockLocation(block);
-                pricingRepository.save(bwPrice);
-            }
-            if (pricingRepository.findByPrintTypeAndBlockLocation("COLOR", block) == null) {
-                Pricing colorPrice = new Pricing();
-                colorPrice.setPrintType("COLOR");
-                colorPrice.setPricePerPage(5.0);
-                colorPrice.setBlockLocation(block);
-                pricingRepository.save(colorPrice);
-            }
-        }
-
-        // 3. Initialize Printer Configuration for each block if empty
-        for (String block : blocks) {
-            if (printerConfigRepository.findAll().stream().noneMatch(pc -> block.equals(pc.getBlockLocation()))) {
-                PrinterConfig config = new PrinterConfig();
-                config.setBlockLocation(block);
-                config.setPrinterName(block + " Laser Jet");
-                config.setPrinterIp("192.168.1." + (100 + Math.abs(block.hashCode()) % 100));
-                config.setActive(true);
-                config.setMaintenance(false);
-                config.setPaperCount(500);
-                config.setQrScanToPrint(true);
-                config.setOtpEnabled(true);
-                config.setColourSupported(true);
-                config.setPaused(false);
-                printerConfigRepository.save(config);
-            }
-        }
+        // Removed sample initialization of Campus Blocks, Pricing, and Printer Configs
+        // as the user manages these dynamically through the Admin Dashboard.
 
         // 4. Initialize default System Settings if empty
         String[][] settings = {
