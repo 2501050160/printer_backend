@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.saipraveen.login_registration.entity.Admin;
+import com.saipraveen.login_registration.entity.ManagerLog;
+import com.saipraveen.login_registration.repository.ManagerLogRepository;
 import com.saipraveen.login_registration.service.AdminService;
 
 @RestController
@@ -260,5 +262,31 @@ public class AdminController {
             return ResponseEntity.ok(java.util.Collections.singletonMap("success", true));
         }
         return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("success", false));
+    }
+
+    @Autowired
+    private ManagerLogRepository managerLogRepository;
+
+    @PostMapping("/logs/create")
+    public ResponseEntity<?> createManagerLog(@RequestBody ManagerLog log) {
+        try {
+            log.setTimestamp(java.time.LocalDateTime.now());
+            managerLogRepository.save(log);
+            return ResponseEntity.ok("Log created successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/logs/all")
+    public ResponseEntity<?> getManagerLogs(@org.springframework.web.bind.annotation.RequestParam(required = false) String college) {
+        try {
+            if (college != null && !college.isEmpty() && !college.equals("ALL")) {
+                return ResponseEntity.ok(managerLogRepository.findByCollegeOrderByTimestampDesc(college));
+            }
+            return ResponseEntity.ok(managerLogRepository.findAllByOrderByTimestampDesc());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
