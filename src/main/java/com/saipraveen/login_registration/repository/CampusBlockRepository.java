@@ -5,4 +5,5 @@ import com.saipraveen.login_registration.entity.CampusBlock;
 
 public interface CampusBlockRepository extends JpaRepository<CampusBlock, Long> {
     CampusBlock findByName(String name);
+    CampusBlock findByServerApiKey(String serverApiKey);
 }

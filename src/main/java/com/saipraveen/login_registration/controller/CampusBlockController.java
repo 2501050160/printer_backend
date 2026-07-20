@@ -64,12 +64,27 @@ public class CampusBlockController {
         }
 
         String col = (college == null || college.trim().isEmpty()) ? "KLU" : college.trim();
-        CampusBlock block = repository.save(new CampusBlock(trimmed, col));
+        CampusBlock newBlock = new CampusBlock(trimmed, col);
+        newBlock.setServerApiKey(java.util.UUID.randomUUID().toString());
+        CampusBlock block = repository.save(newBlock);
         
         // Auto-initialize prices for the new block so that we can price orders
         pricingService.updatePrice("BW", 2.0, trimmed);
         pricingService.updatePrice("COLOR", 5.0, trimmed);
         
         return ResponseEntity.ok(block);
+    }
+
+    @PostMapping("/generate-key/{id}")
+    public ResponseEntity<?> generateServerApiKey(@PathVariable Long id) {
+        try {
+            CampusBlock block = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Block not found"));
+            String newKey = java.util.UUID.randomUUID().toString();
+            block.setServerApiKey(newKey);
+            repository.save(block);
+            return ResponseEntity.ok(block);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

@@ -15,6 +15,9 @@ public class CampusBlock {
     @Column(nullable = true)
     private String college = "KLU";
 
+    @Column(nullable = true, unique = true)
+    private String serverApiKey;
+
     public CampusBlock() {}
 
     public CampusBlock(String name) {
@@ -49,5 +52,13 @@ public class CampusBlock {
 
     public void setCollege(String college) {
         this.college = college;
+    }
+
+    public String getServerApiKey() {
+        return serverApiKey;
+    }
+
+    public void setServerApiKey(String serverApiKey) {
+        this.serverApiKey = serverApiKey;
     }
 }
