@@ -11,6 +11,13 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
+import com.saipraveen.login_registration.entity.PdfFile;
+import com.saipraveen.login_registration.entity.CampusBlock;
+import com.saipraveen.login_registration.entity.CollegeConfig;
+import com.saipraveen.login_registration.repository.PdfFileRepository;
+import com.saipraveen.login_registration.repository.CampusBlockRepository;
+import com.saipraveen.login_registration.repository.CollegeConfigRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class RazorpayService {
@@ -18,20 +25,49 @@ public class RazorpayService {
     private static final Logger logger = LoggerFactory.getLogger(RazorpayService.class);
 
     @Value("${razorpay.key.id}")
-    private String keyId;
+    private String defaultKeyId;
 
     @Value("${razorpay.key.secret}")
-    private String keySecret;
+    private String defaultKeySecret;
+
+    @Autowired
+    private PdfFileRepository pdfFileRepository;
+
+    @Autowired
+    private CampusBlockRepository campusBlockRepository;
+
+    @Autowired
+    private CollegeConfigRepository collegeConfigRepository;
 
     public Map<String, Object> createOrder(
             Double amount,
             String appOrderId
     ) throws Exception {
 
+        String currentKeyId = defaultKeyId;
+        String currentKeySecret = defaultKeySecret;
+
+        try {
+            PdfFile pdfFile = pdfFileRepository.findByOrderId(appOrderId);
+            if (pdfFile != null) {
+                CampusBlock block = campusBlockRepository.findByName(pdfFile.getBlockLocation());
+                if (block != null && block.getCollege() != null) {
+                    CollegeConfig config = collegeConfigRepository.findByCollegeName(block.getCollege());
+                    if (config != null) {
+                        currentKeyId = config.getRazorpayKeyId();
+                        currentKeySecret = config.getRazorpayKeySecret();
+                        logger.info("Using custom Razorpay keys for college: {}", block.getCollege());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not determine dynamic keys for appOrderId: {}, falling back to default keys.", appOrderId);
+        }
+
         RazorpayClient client =
                 new RazorpayClient(
-                        keyId,
-                        keySecret
+                        currentKeyId,
+                        currentKeySecret
                 );
 
         JSONObject options =

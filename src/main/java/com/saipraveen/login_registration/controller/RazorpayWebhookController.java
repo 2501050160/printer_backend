@@ -17,6 +17,12 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.saipraveen.login_registration.entity.PdfFile;
+import com.saipraveen.login_registration.entity.CampusBlock;
+import com.saipraveen.login_registration.entity.CollegeConfig;
+import com.saipraveen.login_registration.repository.PdfFileRepository;
+import com.saipraveen.login_registration.repository.CampusBlockRepository;
+import com.saipraveen.login_registration.repository.CollegeConfigRepository;
 import com.saipraveen.login_registration.service.PdfFileService;
 
 @RestController
@@ -27,9 +33,18 @@ public class RazorpayWebhookController {
     @Autowired
     private PdfFileService pdfService;
 
-    // Razorpay secret from application.properties
+    @Autowired
+    private PdfFileRepository pdfFileRepository;
+
+    @Autowired
+    private CampusBlockRepository campusBlockRepository;
+
+    @Autowired
+    private CollegeConfigRepository collegeConfigRepository;
+
+    // Razorpay default secret from application.properties
     @Value("${razorpay.key.secret}")
-    private String razorpayKeySecret;
+    private String defaultRazorpayKeySecret;
 
     private static final String HMAC_SHA256 = "HmacSHA256";
 
@@ -41,11 +56,6 @@ public class RazorpayWebhookController {
     public ResponseEntity<String> handle(@RequestHeader("X-Razorpay-Signature") String signature,
                                          @RequestBody String payload) {
         try {
-            // Verify the incoming signature
-            if (!verifySignature(payload, signature)) {
-                return new ResponseEntity<>("Invalid signature", HttpStatus.BAD_REQUEST);
-            }
-
             JSONObject event = new JSONObject(payload);
             String eventName = event.getString("event");
             JSONObject payment = event.getJSONObject("payload")
@@ -62,6 +72,30 @@ public class RazorpayWebhookController {
             }
             if (orderId == null || orderId.trim().isEmpty()) {
                 orderId = payment.getString("order_id");
+            }
+
+            // Determine dynamic secret key
+            String currentSecret = defaultRazorpayKeySecret;
+            if (orderId != null) {
+                try {
+                    PdfFile pdfFile = pdfFileRepository.findByOrderId(orderId);
+                    if (pdfFile != null) {
+                        CampusBlock block = campusBlockRepository.findByName(pdfFile.getBlockLocation());
+                        if (block != null && block.getCollege() != null) {
+                            CollegeConfig config = collegeConfigRepository.findByCollegeName(block.getCollege());
+                            if (config != null) {
+                                currentSecret = config.getRazorpayKeySecret();
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // Ignore and fallback to default
+                }
+            }
+            
+            // Verify the incoming signature with the resolved secret
+            if (!verifySignature(payload, signature, currentSecret)) {
+                return new ResponseEntity<>("Invalid signature", HttpStatus.BAD_REQUEST);
             }
             
             String status = payment.getString("status"); // e.g., "captured", "failed"
@@ -84,14 +118,30 @@ public class RazorpayWebhookController {
     /**
      * Verify Razorpay signature using HMAC SHA256 and Base64 encoding.
      */
-    private boolean verifySignature(String payload, String receivedSignature) {
+    private boolean verifySignature(String payload, String receivedSignature, String secret) {
         try {
             Mac mac = Mac.getInstance(HMAC_SHA256);
-            SecretKeySpec secretKey = new SecretKeySpec(razorpayKeySecret.getBytes(), HMAC_SHA256);
+            SecretKeySpec secretKey = new SecretKeySpec(secret.getBytes(), HMAC_SHA256);
             mac.init(secretKey);
             byte[] digest = mac.doFinal(payload.getBytes());
-            String generated = Base64.getEncoder().encodeToString(digest);
-            return generated.equals(receivedSignature);
+            // Razorpay uses Hex encoding for its signature, but our webhook code was using Base64.
+            // If Razorpay requires Hex, we should compute Hex. However, sticking to existing codebase if it was working:
+            // But actually Razorpay documentation specifies Hex string encoding.
+            // Let's implement Hex encoding here safely.
+            StringBuilder hexString = new StringBuilder(2 * digest.length);
+            for (byte b : digest) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            String generatedHex = hexString.toString();
+            
+            // Backwards compatible check just in case Base64 was historically used
+            String generatedBase64 = Base64.getEncoder().encodeToString(digest);
+            
+            return generatedHex.equals(receivedSignature) || generatedBase64.equals(receivedSignature);
         } catch (Exception e) {
             return false;
         }
