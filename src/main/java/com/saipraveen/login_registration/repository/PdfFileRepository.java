@@ -218,4 +218,10 @@ int clearPdfDataForFinishedOrders();
     long countByAppliedReferralCodeAndPaymentStatus(String referralCode, String paymentStatus);
 
     long countByBlockLocationAndStatusIn(String blockLocation, List<String> statuses);
+
+    @Query("SELECT COUNT(DISTINCT p.userId) FROM PdfFile p WHERE p.status = 'COMPLETED'")
+    Long countDistinctUsersWithCompletedOrders();
+
+    @Query("SELECT COUNT(p) FROM PdfFile p WHERE p.paymentStatus = 'PAID'")
+    Long countTotalPaidOrders();
 }

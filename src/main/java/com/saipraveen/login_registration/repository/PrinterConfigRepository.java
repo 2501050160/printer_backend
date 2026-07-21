@@ -10,4 +10,6 @@ public interface PrinterConfigRepository
     PrinterConfig findByBlockLocation(
             String blockLocation
     );
+
+    long countByActiveTrue();
 }
