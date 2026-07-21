@@ -241,4 +241,16 @@ public class UserService {
         }
         repository.save(user);
     }
+
+    @Transactional
+    public void updateUserCollege(String email, String college) {
+        User user = repository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        if (college != null && !college.trim().isEmpty()) {
+            user.setCollege(college.trim());
+        }
+        repository.save(user);
+    }
 }

@@ -138,16 +138,15 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/oauth/set-password")
-    public ResponseEntity<?> oauthSetPassword(
+    @PostMapping("/oauth/set-college")
+    public ResponseEntity<?> oauthSetCollege(
             @RequestParam String email,
-            @RequestParam String newPassword,
-            @RequestParam(required = false) String college) {
+            @RequestParam String college) {
         try {
-            service.updateUserPasswordAndCollege(email, newPassword, college);
+            service.updateUserCollege(email, college);
             java.util.Map<String, Object> resp = new java.util.HashMap<>();
             resp.put("success", true);
-            resp.put("message", "Password set successfully!");
+            resp.put("message", "College set successfully!");
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
