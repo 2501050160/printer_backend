@@ -243,6 +243,12 @@ public PdfFile updateOrder(
         actualSheets = (int) Math.ceil(pages / 2.0);
     } else if ("4-up".equals(nupLayout)) {
         actualSheets = (int) Math.ceil(pages / 4.0);
+    } else if ("6-up".equals(nupLayout)) {
+        actualSheets = (int) Math.ceil(pages / 6.0);
+    } else if ("8-up".equals(nupLayout)) {
+        actualSheets = (int) Math.ceil(pages / 8.0);
+    } else if ("9-up".equals(nupLayout)) {
+        actualSheets = (int) Math.ceil(pages / 9.0);
     }
 
     Double rate = pricingService.getPrice(printType, pdf.getBlockLocation());
@@ -463,7 +469,9 @@ public byte[] getPrintablePdfData(PdfFile pdf) {
         try (PDDocument filteredDoc = createPrintableDocument(document, pdf.getSelectedPages())) {
             
             PDDocument finalDoc = filteredDoc;
-            if ("2-up".equals(pdf.getNupLayout()) || "4-up".equals(pdf.getNupLayout())) {
+            if ("2-up".equals(pdf.getNupLayout()) || "4-up".equals(pdf.getNupLayout()) || 
+                "6-up".equals(pdf.getNupLayout()) || "8-up".equals(pdf.getNupLayout()) || 
+                "9-up".equals(pdf.getNupLayout())) {
                 finalDoc = applyNupLayout(filteredDoc, pdf.getNupLayout());
             }
 
@@ -486,11 +494,15 @@ private PDDocument applyNupLayout(PDDocument source, String layout) throws Excep
     PDDocument out = new PDDocument();
     LayerUtility layerUtility = new LayerUtility(out);
     int totalPages = source.getNumberOfPages();
-    int pagesPerSheet = "2-up".equals(layout) ? 2 : 4;
+    int pagesPerSheet = "2-up".equals(layout) ? 2 : 
+                        "4-up".equals(layout) ? 4 : 
+                        "6-up".equals(layout) ? 6 : 
+                        "8-up".equals(layout) ? 8 : 
+                        "9-up".equals(layout) ? 9 : 1;
     
     for (int i = 0; i < totalPages; i += pagesPerSheet) {
-        // For 2-up: landscape A4 (842 x 595). For 4-up: portrait A4 (595 x 842).
-        PDRectangle newPageMediaBox = "2-up".equals(layout) ?
+        boolean isLandscape = "2-up".equals(layout) || "6-up".equals(layout) || "8-up".equals(layout);
+        PDRectangle newPageMediaBox = isLandscape ?
             new PDRectangle(PDRectangle.A4.getHeight(), PDRectangle.A4.getWidth()) : 
             PDRectangle.A4; 
         
@@ -546,6 +558,60 @@ private PDDocument applyNupLayout(PDDocument source, String layout) throws Excep
                     
                     if (j % 2 == 1) tx += targetW; 
                     if (j < 2) ty += targetH;      // Draw top row (j=0,1) at the top (ty + targetH)
+                    
+                    contentStream.saveGraphicsState();
+                    contentStream.transform(Matrix.getTranslateInstance(tx, ty));
+                    contentStream.transform(Matrix.getScaleInstance(scale, scale));
+                    contentStream.drawForm(form);
+                    contentStream.restoreGraphicsState();
+                } else if ("6-up".equals(layout)) {
+                    // Fit into 1/6 of landscape A4 (3 cols x 2 rows)
+                    float targetW = newPageMediaBox.getWidth() / 3f;
+                    float targetH = newPageMediaBox.getHeight() / 2f;
+                    scaleX = targetW / mediaBox.getWidth();
+                    scaleY = targetH / mediaBox.getHeight();
+                    scale = Math.min(scaleX, scaleY);
+                    
+                    float actW = mediaBox.getWidth() * scale;
+                    float actH = mediaBox.getHeight() * scale;
+                    tx = (targetW - actW) / 2f + (j % 3) * targetW;
+                    ty = (targetH - actH) / 2f + (1 - (j / 3)) * targetH; 
+                    
+                    contentStream.saveGraphicsState();
+                    contentStream.transform(Matrix.getTranslateInstance(tx, ty));
+                    contentStream.transform(Matrix.getScaleInstance(scale, scale));
+                    contentStream.drawForm(form);
+                    contentStream.restoreGraphicsState();
+                } else if ("8-up".equals(layout)) {
+                    // Fit into 1/8 of landscape A4 (4 cols x 2 rows)
+                    float targetW = newPageMediaBox.getWidth() / 4f;
+                    float targetH = newPageMediaBox.getHeight() / 2f;
+                    scaleX = targetW / mediaBox.getWidth();
+                    scaleY = targetH / mediaBox.getHeight();
+                    scale = Math.min(scaleX, scaleY);
+                    
+                    float actW = mediaBox.getWidth() * scale;
+                    float actH = mediaBox.getHeight() * scale;
+                    tx = (targetW - actW) / 2f + (j % 4) * targetW;
+                    ty = (targetH - actH) / 2f + (1 - (j / 4)) * targetH; 
+                    
+                    contentStream.saveGraphicsState();
+                    contentStream.transform(Matrix.getTranslateInstance(tx, ty));
+                    contentStream.transform(Matrix.getScaleInstance(scale, scale));
+                    contentStream.drawForm(form);
+                    contentStream.restoreGraphicsState();
+                } else if ("9-up".equals(layout)) {
+                    // Fit into 1/9 of portrait A4 (3 cols x 3 rows)
+                    float targetW = newPageMediaBox.getWidth() / 3f;
+                    float targetH = newPageMediaBox.getHeight() / 3f;
+                    scaleX = targetW / mediaBox.getWidth();
+                    scaleY = targetH / mediaBox.getHeight();
+                    scale = Math.min(scaleX, scaleY);
+                    
+                    float actW = mediaBox.getWidth() * scale;
+                    float actH = mediaBox.getHeight() * scale;
+                    tx = (targetW - actW) / 2f + (j % 3) * targetW;
+                    ty = (targetH - actH) / 2f + (2 - (j / 3)) * targetH; 
                     
                     contentStream.saveGraphicsState();
                     contentStream.transform(Matrix.getTranslateInstance(tx, ty));
