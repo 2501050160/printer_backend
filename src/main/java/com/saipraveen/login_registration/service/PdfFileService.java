@@ -20,6 +20,9 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
+import org.apache.pdfbox.multipdf.LayerUtility;
+import org.apache.pdfbox.util.Matrix;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.printing.PDFPageable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -452,13 +455,25 @@ public byte[] getPrintablePdfData(PdfFile pdf) {
     if (pdf.getPdfData() == null) {
         return null;
     }
-    if (pdf.getSelectedPages() == null || "ALL".equalsIgnoreCase(pdf.getSelectedPages().trim())) {
+    if ((pdf.getSelectedPages() == null || "ALL".equalsIgnoreCase(pdf.getSelectedPages().trim())) 
+        && "1-up".equals(pdf.getNupLayout())) {
         return pdf.getPdfData();
     }
     try (PDDocument document = Loader.loadPDF(pdf.getPdfData())) {
         try (PDDocument filteredDoc = createPrintableDocument(document, pdf.getSelectedPages())) {
+            
+            PDDocument finalDoc = filteredDoc;
+            if ("2-up".equals(pdf.getNupLayout()) || "4-up".equals(pdf.getNupLayout())) {
+                finalDoc = applyNupLayout(filteredDoc, pdf.getNupLayout());
+            }
+
             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            filteredDoc.save(out);
+            finalDoc.save(out);
+            
+            if (finalDoc != filteredDoc) {
+                finalDoc.close();
+            }
+            
             return out.toByteArray();
         }
     } catch (Exception e) {
@@ -467,7 +482,82 @@ public byte[] getPrintablePdfData(PdfFile pdf) {
     }
 }
 
+private PDDocument applyNupLayout(PDDocument source, String layout) throws Exception {
+    PDDocument out = new PDDocument();
+    LayerUtility layerUtility = new LayerUtility(out);
+    int totalPages = source.getNumberOfPages();
+    int pagesPerSheet = "2-up".equals(layout) ? 2 : 4;
+    
+    for (int i = 0; i < totalPages; i += pagesPerSheet) {
+        // For 2-up: landscape A4 (842 x 595). For 4-up: portrait A4 (595 x 842).
+        PDRectangle newPageMediaBox = "2-up".equals(layout) ?
+            new PDRectangle(PDRectangle.A4.getHeight(), PDRectangle.A4.getWidth()) : 
+            PDRectangle.A4; 
+        
+        PDPage newPage = new PDPage(newPageMediaBox);
+        out.addPage(newPage);
 
+        try (PDPageContentStream contentStream = new PDPageContentStream(out, newPage)) {
+            for (int j = 0; j < pagesPerSheet; j++) {
+                if (i + j >= totalPages) break;
+                
+                PDPage originalPage = source.getPage(i + j);
+                PDFormXObject form = layerUtility.importPageAsForm(source, originalPage);
+                
+                PDRectangle mediaBox = originalPage.getMediaBox();
+                float scaleX, scaleY, scale, tx = 0, ty = 0;
+
+                if ("2-up".equals(layout)) {
+                    // Fit into half of landscape A4 -> Portrait A5 (421 x 595)
+                    float targetW = newPageMediaBox.getWidth() / 2f; 
+                    float targetH = newPageMediaBox.getHeight();     
+                    scaleX = targetW / mediaBox.getWidth();
+                    scaleY = targetH / mediaBox.getHeight();
+                    scale = Math.min(scaleX, scaleY);
+                    
+                    float actW = mediaBox.getWidth() * scale;
+                    float actH = mediaBox.getHeight() * scale;
+                    
+                    tx = (targetW - actW) / 2f;
+                    ty = (targetH - actH) / 2f;
+                    
+                    if (j == 1) {
+                        tx += targetW; 
+                    }
+                    
+                    contentStream.saveGraphicsState();
+                    contentStream.transform(Matrix.getTranslateInstance(tx, ty));
+                    contentStream.transform(Matrix.getScaleInstance(scale, scale));
+                    contentStream.drawForm(form);
+                    contentStream.restoreGraphicsState();
+                } else if ("4-up".equals(layout)) {
+                    // Fit into quarter of portrait A4 -> Portrait A6 (297.5 x 421)
+                    float targetW = newPageMediaBox.getWidth() / 2f;
+                    float targetH = newPageMediaBox.getHeight() / 2f;
+                    scaleX = targetW / mediaBox.getWidth();
+                    scaleY = targetH / mediaBox.getHeight();
+                    scale = Math.min(scaleX, scaleY);
+                    
+                    float actW = mediaBox.getWidth() * scale;
+                    float actH = mediaBox.getHeight() * scale;
+                    
+                    tx = (targetW - actW) / 2f;
+                    ty = (targetH - actH) / 2f;
+                    
+                    if (j % 2 == 1) tx += targetW; 
+                    if (j < 2) ty += targetH;      // Draw top row (j=0,1) at the top (ty + targetH)
+                    
+                    contentStream.saveGraphicsState();
+                    contentStream.transform(Matrix.getTranslateInstance(tx, ty));
+                    contentStream.transform(Matrix.getScaleInstance(scale, scale));
+                    contentStream.drawForm(form);
+                    contentStream.restoreGraphicsState();
+                }
+            }
+        }
+    }
+    return out;
+}
 
 
 public List<?> getUserOrders(
