@@ -91,6 +91,7 @@ public class SystemStatusController {
         settings.put("generalPopupEnabled", systemSettingService.getSettingBool("general_popup_enabled", false));
         settings.put("generalPopupMessage", systemSettingService.getSetting("general_popup_message", ""));
         settings.put("suspendedColleges", systemSettingService.getSetting("suspended_colleges", ""));
+        settings.put("displayAdPhotoEnabled", systemSettingService.getSettingBool("display_ad_photo_enabled", true));
         return ResponseEntity.ok(settings);
     }
 

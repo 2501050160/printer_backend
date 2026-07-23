@@ -30,11 +30,13 @@ public class CouponService {
         );
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public List<Coupon> getAllCoupons() {
-
+        autoDeleteInvalidCoupons();
         return repository.findAll();
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public Coupon validateCoupon(
             String couponCode) {
 
@@ -44,40 +46,29 @@ public class CouponService {
                 );
 
         if (coupon == null) {
-
             throw new RuntimeException(
                     "Coupon Not Found"
             );
         }
 
         if (!coupon.getActive()) {
-
             throw new RuntimeException(
                     "Coupon Disabled"
             );
         }
 
-        if (coupon.getUsedCount()
-                >= coupon.getMaxUses()) {
+        boolean expired = coupon.getExpiryDate() != null && coupon.getExpiryDate().isBefore(LocalDate.now());
+        boolean fullyUsed = coupon.getUsedCount() != null && coupon.getMaxUses() != null && coupon.getUsedCount() >= coupon.getMaxUses();
 
-            throw new RuntimeException(
-                    "Coupon Usage Limit Reached"
-            );
-        }
-
-        if (coupon.getExpiryDate()
-                .isBefore(
-                        LocalDate.now()
-                )) {
-
-            throw new RuntimeException(
-                    "Coupon Expired"
-            );
+        if (expired || fullyUsed) {
+            repository.delete(coupon);
+            throw new RuntimeException(expired ? "Coupon Expired" : "Coupon Usage Limit Reached");
         }
 
         return coupon;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public Coupon useCoupon(
             String couponCode) {
 
@@ -87,7 +78,6 @@ public class CouponService {
                 );
 
         if (coupon == null) {
-
             throw new RuntimeException(
                     "Coupon Not Found"
             );
@@ -96,6 +86,11 @@ public class CouponService {
         coupon.setUsedCount(
                 coupon.getUsedCount() + 1
         );
+
+        if (coupon.getMaxUses() != null && coupon.getUsedCount() >= coupon.getMaxUses()) {
+            repository.delete(coupon);
+            return coupon;
+        }
 
         return repository.save(
                 coupon

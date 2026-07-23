@@ -134,6 +134,8 @@ public class AdminController {
         settings.put("offpeakMorningStart", systemSettingService.getSettingDouble("offpeak_morning_start", 7.0));
         settings.put("offpeakMorningEnd", systemSettingService.getSettingDouble("offpeak_morning_end", 9.0));
         settings.put("suspendedColleges", systemSettingService.getSetting("suspended_colleges", ""));
+        settings.put("cancelWindowEnabled", systemSettingService.getSettingBool("cancel_window_enabled", true));
+        settings.put("displayAdPhotoEnabled", systemSettingService.getSettingBool("display_ad_photo_enabled", true));
         return ResponseEntity.ok(settings);
     }
 
@@ -189,6 +191,12 @@ public class AdminController {
         }
         if (request.containsKey("suspendedColleges")) {
             systemSettingService.setSetting("suspended_colleges", String.valueOf(request.get("suspendedColleges")));
+        }
+        if (request.containsKey("cancelWindowEnabled")) {
+            systemSettingService.setSetting("cancel_window_enabled", String.valueOf(request.get("cancelWindowEnabled")));
+        }
+        if (request.containsKey("displayAdPhotoEnabled")) {
+            systemSettingService.setSetting("display_ad_photo_enabled", String.valueOf(request.get("displayAdPhotoEnabled")));
         }
         return ResponseEntity.ok("Settings updated successfully");
     }

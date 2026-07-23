@@ -26,6 +26,9 @@ public class QueueService {
     @Autowired
     private PrinterConfigService printerConfigService;
 
+    @Autowired
+    private com.saipraveen.login_registration.service.SystemSettingService systemSettingService;
+
     @Value("${print.cancel-window-seconds:30}")
     private int cancelWindowSeconds;
 
@@ -294,10 +297,27 @@ public class QueueService {
         if (pdf.getScheduledTime() != null) {
             pdf.setStatus("SCHEDULED");
         } else {
-            pdf.setCancelWindowEndsAt(
-                    now.plusSeconds(cancelWindowSeconds)
-            );
-            pdf.setStatus("CANCEL_WINDOW");
+            boolean cancelWindowEnabled = systemSettingService.getSettingBool("cancel_window_enabled", true);
+            if (cancelWindowEnabled) {
+                pdf.setCancelWindowEndsAt(
+                        now.plusSeconds(cancelWindowSeconds)
+                );
+                pdf.setStatus("CANCEL_WINDOW");
+            } else {
+                pdf.setCancelWindowEndsAt(now);
+                com.saipraveen.login_registration.entity.PrinterConfig config = null;
+                try {
+                    config = printerConfigService.getPrinterByBlock(pdf.getBlockLocation());
+                } catch (Exception e) {
+                    System.err.println("Failed to fetch printer config: " + e.getMessage());
+                }
+                if (config != null && Boolean.FALSE.equals(config.getOtpEnabled())) {
+                    pdf.setStatus("QUEUE");
+                    pdf.setQueuedAt(now);
+                } else {
+                    pdf.setStatus("PENDING_SCAN");
+                }
+            }
         }
 
         if (pdf.getOriginalPrice() == null && pdf.getPrice() != null) {
