@@ -178,15 +178,35 @@ private byte[] convertImageToPdf(byte[] imageBytes, String contentType) throws I
     try (PDDocument document = new PDDocument();
          ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
-        PDPage page = new PDPage(new PDRectangle(image.getWidth(), image.getHeight()));
+        
+        float pageWidth = PDRectangle.A4.getWidth();
+        float pageHeight = PDRectangle.A4.getHeight();
+        if (image.getWidth() > image.getHeight()) {
+            // Use landscape A4 if image is wider than it is tall
+            pageWidth = PDRectangle.A4.getHeight();
+            pageHeight = PDRectangle.A4.getWidth();
+        }
+        
+        PDPage page = new PDPage(new PDRectangle(pageWidth, pageHeight));
         document.addPage(page);
 
         PDImageXObject pdImage = (contentType != null && contentType.contains("png"))
                 ? LosslessFactory.createFromImage(document, image)
                 : JPEGFactory.createFromImage(document, image);
 
+        float imgWidth = image.getWidth();
+        float imgHeight = image.getHeight();
+        float scaleX = pageWidth / imgWidth;
+        float scaleY = pageHeight / imgHeight;
+        float scale = Math.min(scaleX, scaleY);
+
+        float w = imgWidth * scale;
+        float h = imgHeight * scale;
+        float x = (pageWidth - w) / 2;
+        float y = (pageHeight - h) / 2;
+
         try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
-            contentStream.drawImage(pdImage, 0, 0);
+            contentStream.drawImage(pdImage, x, y, w, h);
         }
         document.save(baos);
         return baos.toByteArray();
