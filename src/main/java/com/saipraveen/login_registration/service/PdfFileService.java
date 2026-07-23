@@ -113,14 +113,8 @@ public PdfFile savePdf(
     pdf.setCopies(1);
     pdf.setSelectedPages("ALL");
 
-    // Generate Sequential Order ID
-    Long lastId = repository.getLastId() + 1;
-
-    String orderId =
-            "ORD2026" +
-            String.format("%04d", lastId);
-
-    pdf.setOrderId(orderId);
+    // Set temporary order ID placeholder
+    pdf.setOrderId("TEMP_PENDING");
 
     // Upload Time
     pdf.setUploadTime(LocalDateTime.now());
@@ -165,13 +159,12 @@ public PdfFile savePdf(
                 "Total Pages = " + pageCount);
     }
 
-pdf.setStatus(
-        "ORDER_CREATED"
-);
+    pdf.setStatus("DRAFT");
+    pdf.setPaymentStatus("UNPAID");
 
-pdf.setPaymentStatus("UNPAID");
-
-    return repository.save(pdf);
+    PdfFile savedPdf = repository.save(pdf);
+    savedPdf.setOrderId("DRAFT_" + savedPdf.getId());
+    return repository.save(savedPdf);
 }
 
 private byte[] convertImageToPdf(byte[] imageBytes, String contentType) throws IOException {
@@ -238,6 +231,14 @@ public PdfFile updateOrder(
     if (pdf == null) {
         throw new RuntimeException(
                 "Order not found");
+    }
+
+    // Generate real sequential Order ID ONLY when proceeding to checkout/order!
+    if (pdf.getOrderId() != null && pdf.getOrderId().startsWith("DRAFT_")) {
+        Long lastId = repository.getLastId() + 1;
+        String realOrderId = "ORD2026" + String.format("%04d", lastId);
+        pdf.setOrderId(realOrderId);
+        pdf.setStatus("ORDER_CREATED");
     }
 
     pdf.setCopies(copies);
