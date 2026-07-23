@@ -28,4 +28,5 @@ public interface PdfFileProjection {
     Double getDiscountAmount();
     LocalDateTime getScheduledTime();
     String getNupLayout();
+    Boolean getDoubleSided();
 }

@@ -65,6 +65,7 @@ private String printType;
     private java.time.LocalDateTime scheduledTime;
 
     private String nupLayout = "1-up";
+    private Boolean doubleSided = false;
 
     @Column(columnDefinition = "bytea")
     @com.fasterxml.jackson.annotation.JsonIgnore
@@ -307,5 +308,13 @@ public void setTotalPages(Integer totalPages) {
 
     public void setNupLayout(String nupLayout) {
         this.nupLayout = nupLayout;
+    }
+
+    public Boolean getDoubleSided() {
+        return doubleSided == null ? false : doubleSided;
+    }
+
+    public void setDoubleSided(Boolean doubleSided) {
+        this.doubleSided = doubleSided;
     }
 }

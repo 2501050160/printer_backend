@@ -220,6 +220,17 @@ public PdfFile updateOrder(
         String printType,
         String blockLocation,
         String nupLayout) {
+    return updateOrder(orderId, copies, selectedPages, printType, blockLocation, nupLayout, false);
+}
+
+public PdfFile updateOrder(
+        String orderId,
+        Integer copies,
+        String selectedPages,
+        String printType,
+        String blockLocation,
+        String nupLayout,
+        Boolean doubleSided) {
 
     PdfFile pdf =
             repository.findByOrderId(orderId);
@@ -238,6 +249,7 @@ public PdfFile updateOrder(
             )
     );
     pdf.setNupLayout(nupLayout);
+    pdf.setDoubleSided(doubleSided);
 
     int pages = 1;
 
