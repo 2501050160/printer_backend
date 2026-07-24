@@ -47,4 +47,29 @@ public class PricingController {
                 service.getPrice(printType, blockLocation)
         );
     }
+
+    @GetMapping("/rates")
+    public ResponseEntity<?> getRates() {
+        java.util.Map<String, Double> rates = new java.util.HashMap<>();
+        Double bw = service.getPrice("BW", "C Block");
+        Double color = service.getPrice("COLOR", "C Block");
+        rates.put("bwRate", bw != 0.0 ? bw : 2.0);
+        rates.put("colorRate", color != 0.0 ? color : 10.0);
+        return ResponseEntity.ok(rates);
+    }
+
+    @PostMapping("/rates/update")
+    public ResponseEntity<?> updateRates(
+            @RequestParam Double bwRate,
+            @RequestParam Double colorRate
+    ) {
+        for (com.saipraveen.login_registration.entity.Pricing p : service.getPrices()) {
+            if ("BW".equalsIgnoreCase(p.getPrintType())) {
+                service.updatePrice("BW", bwRate, p.getBlockLocation());
+            } else if ("COLOR".equalsIgnoreCase(p.getPrintType())) {
+                service.updatePrice("COLOR", colorRate, p.getBlockLocation());
+            }
+        }
+        return ResponseEntity.ok("Rates updated successfully");
+    }
 }
